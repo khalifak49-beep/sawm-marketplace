@@ -1,0 +1,12 @@
+@{
+    ViewData["Title"] = "غير مصرّح";
+}
+
+<div class="card">
+    <div class="card-body text-center py-5">
+        <span class="ico d-inline-grid mb-3" style="width:56px;height:56px;border-radius:50%;background:var(--muted);color:var(--muted-fg);place-items:center">@Icons.Render("lock", 26)</span>
+        <h5 class="fw-bold mb-2">لا تملك صلاحية الوصول لهذه الصفحة</h5>
+        <p class="text-muted small">هذه الصفحة مخصصة لدور مختلف عن دور حسابك الحالي.</p>
+        <a class="btn btn-green" asp-controller="Home" asp-action="Index">العودة للوحة التحكم</a>
+    </div>
+</div>

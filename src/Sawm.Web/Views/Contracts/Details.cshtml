@@ -1,0 +1,381 @@
+@model Contract
+@inject UserManager<ApplicationUser> UserManager
+@{
+    ViewData["Title"] = "العقد " + Model.ContractNumber;
+    var role = ViewBag.Role as string ?? "";
+    var myRating = ViewBag.MyRating as Rating;
+    var uid = UserManager.GetUserId(User);
+    bool isSeller = Model.SellerId == uid;
+    bool isBuyer = Model.BuyerId == uid;
+    bool isBroker = Model.BrokerId == uid;
+    bool isAdmin = User.IsInRole(Roles.Admin);
+    bool isParentOfBuyer = ViewBag.IsParentOfBuyer ?? false;  // الشركة الرئيسية لفرعٍ مشترٍ
+    bool mySignature = isSeller ? Model.SellerSigned : (isBuyer || isParentOfBuyer) && Model.BuyerSigned;
+
+    // هل يملك المستخدم الحالي أي إجراء متاح على العقد في حالته الراهنة؟
+    // الشركة الرئيسية يمكنها التوقيع نيابة عن فرعها المشتري
+    bool canSign = (isSeller || isBuyer || isParentOfBuyer) && !mySignature && Model.Status == ContractStatus.AwaitingSignatures;
+    bool canFund = isBuyer && Model.Status == ContractStatus.Active && Model.Escrow == EscrowStatus.NotFunded;
+    bool canConfirm = isBuyer && Model.Status is ContractStatus.ReadyForDelivery or ContractStatus.Active;
+    bool canRelease = isBuyer && Model.Status == ContractStatus.Delivered && Model.Escrow == EscrowStatus.Held;
+    bool canDispute = (isSeller || isBuyer || isBroker)
+        && Model.Status is not (ContractStatus.Completed or ContractStatus.Cancelled or ContractStatus.Disputed);
+    bool canResolve = isAdmin && Model.Status == ContractStatus.Disputed;
+    bool canRate = Model.Status == ContractStatus.Completed && myRating is null && (isSeller || isBuyer);
+    bool anyAction = canSign || canFund || canConfirm || canRelease || canDispute || canResolve || canRate || myRating is not null;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h5 class="fw-bold mb-1">العقد <span class="rtl-num">@Model.ContractNumber</span></h5>
+        <span class="role-chip">دورك: @role</span>
+        <span class="badge bg-@Display.ContractStatusCss(Model.Status) ms-1">@Display.ContractStatus(Model.Status)</span>
+        <span class="badge bg-@(Model.Escrow == EscrowStatus.Held ? "warning" : Model.Escrow == EscrowStatus.Released ? "success" : "secondary") ms-1">
+            الضمان: @Display.Escrow(Model.Escrow)
+        </span>
+    </div>
+    <a class="btn btn-sm btn-outline-secondary" asp-action="Index">كل العقود</a>
+</div>
+
+@if (Model.Status == ContractStatus.AwaitingSignatures)
+{
+    var waitingOn = !Model.SellerSigned && !Model.BuyerSigned
+        ? "الطرفين معاً"
+        : !Model.SellerSigned ? $"البائع: {Model.Seller?.FullName}" : $"المشتري: {Model.Buyer?.FullName}";
+
+    <div class="alert @(canSign ? "alert-warning" : "alert-info") d-flex align-items-center gap-2">
+        @Icons.Render("signature", 18)
+        <div class="flex-grow-1">
+            @if (canSign)
+            {
+                <strong>الدور عليك الآن.</strong> <span>وقّع رقمياً لينتقل العقد إلى مرحلة الضمان المالي.</span>
+            }
+            else
+            {
+                <strong>بانتظار توقيع @waitingOn.</strong>
+                <span>لا يصبح العقد نشطاً ولا يُموَّل الضمان إلا بعد توقيع الطرفين.</span>
+            }
+        </div>
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <!-- الأطراف -->
+        <div class="card mb-3">
+            <div class="card-header">أطراف العقد</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="muted-label">البائع (المزارع)</div>
+                        <div class="fw-semibold">@Model.Seller?.FullName</div>
+                        <div class="small text-muted">@Model.Seller?.Region</div>
+                        <div class="small"><span class="d-inline-flex align-items-center gap-1" style="color:@(Model.SellerSigned ? "var(--primary-700)" : "var(--muted-fg)")">@Icons.Render(Model.SellerSigned ? "check-circle" : "clock", 14) @(Model.SellerSigned ? "موقّع" : "لم يوقّع")</span></div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="muted-label">المشتري</div>
+                        <div class="fw-semibold">@Model.Buyer?.FullName</div>
+                        <div class="small text-muted">@Model.Buyer?.Region</div>
+                        <div class="small"><span class="d-inline-flex align-items-center gap-1" style="color:@(Model.BuyerSigned ? "var(--primary-700)" : "var(--muted-fg)")">@Icons.Render(Model.BuyerSigned ? "check-circle" : "clock", 14) @(Model.BuyerSigned ? "موقّع" : "لم يوقّع")</span></div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="muted-label">الوسيط المشرف</div>
+                        <div class="fw-semibold">@(Model.Broker?.FullName ?? "بدون وسيط")</div>
+                        <div class="small text-muted">
+                            @if (Model.Broker is not null)
+                            {
+                                <span>عمولة <span class="rtl-num">@Model.BrokerCommissionRate.ToString("N1")%</span></span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- التفاصيل المالية -->
+        <div class="card mb-3">
+            <div class="card-header">التفاصيل والتسوية المالية</div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-md-3">
+                        <div class="muted-label">المحصول</div>
+                        <div class="fw-semibold">@Model.Crop?.Name</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="muted-label">الكمية</div>
+                        <div class="fw-semibold rtl-num">@Model.Quantity.ToString("N0") @Model.Crop?.Unit</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="muted-label">سعر الوحدة</div>
+                        <div class="fw-semibold rtl-num">@Model.UnitPrice.ToString("N2")</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="muted-label">تاريخ التسليم</div>
+                        <div class="fw-semibold rtl-num">@Model.DeliveryDate.ToString("yyyy/MM/dd")</div>
+                    </div>
+                </div>
+
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <tr>
+                            <td>القيمة الإجمالية</td>
+                            <td class="text-end rtl-num fw-bold">@Model.TotalValue.ToString("N2") ر.ع</td>
+                        </tr>
+                        <tr class="text-danger">
+                            <td>عمولة المنصة (<span class="rtl-num">@Model.PlatformCommissionRate.ToString("N1")%</span>)</td>
+                            <td class="text-end rtl-num">- @Model.PlatformCommission.ToString("N2")</td>
+                        </tr>
+                        <tr class="text-danger">
+                            <td>عمولة الوسيط (<span class="rtl-num">@Model.BrokerCommissionRate.ToString("N1")%</span>)</td>
+                            <td class="text-end rtl-num">- @Model.BrokerCommission.ToString("N2")</td>
+                        </tr>
+                        <tr class="table-success">
+                            <td class="fw-bold">صافي مستحق المزارع</td>
+                            <td class="text-end rtl-num fw-bold">@Model.NetToSeller.ToString("N2") ر.ع</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-light border small mt-3 mb-0">
+                    <strong>مسؤولية اللوجستيات:</strong> @Display.Logistics(Model.Logistics) —
+                    مكان التسليم: @(Model.DeliveryLocation ?? "غير محدد").
+                    المنصة توثّق هذا البند ولا تتدخل في تنفيذ النقل أو التخزين أو التأمين.
+                    <a asp-controller="Logistics" asp-action="Create" asp-route-contractId="@Model.Id">نشر طلب نقل في السوق اللوجستي</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- البنود -->
+        @if (!string.IsNullOrWhiteSpace(Model.Terms))
+        {
+            <div class="card mb-3">
+                <div class="card-header">الشروط والبنود</div>
+                <div class="card-body">
+                    <div class="small" dir="rtl" style="white-space:pre-line">@Model.Terms</div>
+                </div>
+            </div>
+        }
+
+        <!-- التحقق الميداني -->
+        <div class="card mb-3">
+            <div class="card-header">تقارير التحقق الميداني</div>
+            <div class="card-body">
+                @if (!Model.Inspections.Any())
+                {
+                    <div class="text-muted small">لم يُنفَّذ تحقق ميداني بعد.</div>
+                }
+                else
+                {
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>التاريخ</th><th>المدقق</th><th>النتيجة</th><th>الخصم</th><th>ملاحظات</th></tr></thead>
+                        <tbody>
+                        @foreach (var i in Model.Inspections.OrderByDescending(x => x.InspectedAt))
+                        {
+                            <tr>
+                                <td class="rtl-num small">@i.InspectedAt.ToString("yyyy/MM/dd")</td>
+                                <td class="small">@i.Inspector?.FullName</td>
+                                <td><span class="badge bg-@(i.Result == InspectionResult.Passed ? "success" : i.Result == InspectionResult.Failed ? "danger" : "warning")">@Display.Inspection(i.Result)</span></td>
+                                <td class="rtl-num small">@(i.DiscountPercent > 0 ? i.DiscountPercent.ToString("N1") + "%" : "—")</td>
+                                <td class="small">@i.Notes</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+
+                @if ((isBroker || isAdmin) && Model.Status is ContractStatus.Active or ContractStatus.ReadyForDelivery)
+                {
+                    <hr />
+                    <form asp-action="Inspect" method="post" class="row g-2 align-items-end">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <div class="col-md-3">
+                            <label class="form-label">نتيجة التحقق</label>
+                            <select name="result" class="form-select form-select-sm" id="inspResult">
+                                <option value="1">مطابق</option>
+                                <option value="2">مطابق مع خصم</option>
+                                <option value="3">غير مطابق</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">نسبة الخصم %</label>
+                            <input name="discountPercent" type="number" step="0.5" min="0" max="100" value="0" class="form-control form-control-sm" id="inspDiscount" />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">ملاحظات</label>
+                            <input name="notes" class="form-control form-control-sm" placeholder="نتائج المعاينة والعينات" />
+                        </div>
+                        <div class="col-md-2 d-grid">
+                            <button class="btn btn-sm btn-green">تسجيل التقرير</button>
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+
+        <!-- سجل التدقيق -->
+        <div class="card">
+            <div class="card-header">سجل أحداث العقد</div>
+            <div class="card-body">
+                <ul class="timeline mb-0">
+                    @foreach (var e in Model.Events.OrderByDescending(x => x.CreatedAt))
+                    {
+                        <li>
+                            <div class="fw-semibold small">@e.Action</div>
+                            <div class="text-muted small">@e.Details</div>
+                            <div class="muted-label rtl-num">@e.CreatedAt.ToString("yyyy/MM/dd HH:mm") — @e.ActorName</div>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- عمود الإجراءات -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">الإجراءات المتاحة</div>
+            <div class="card-body d-grid gap-2">
+
+                @if (!anyAction)
+                {
+                    <div class="text-muted small mb-0">
+                        لا توجد إجراءات مطلوبة منك على هذا العقد في حالته الحالية
+                        (@Display.ContractStatus(Model.Status)).
+                    </div>
+                }
+
+                @if (canSign)
+                {
+                    <form asp-action="Sign" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button class="btn btn-green w-100">@Icons.Render("signature", 16) التوقيع الرقمي على العقد</button>
+                    </form>
+                }
+
+                @if (canFund)
+                {
+                    <form asp-action="FundEscrow" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button class="btn btn-brand w-100">@Icons.Render("lock", 16) تمويل حساب الضمان</button>
+                    </form>
+                    <div class="small text-muted">يُحتجز المبلغ إلكترونياً ولا يُحرَّر إلا بعد تأكيد الاستلام.</div>
+                }
+
+                @if (canConfirm)
+                {
+                    <form asp-action="ConfirmDelivery" method="post" onsubmit="return confirm('تأكيد استلام الكمية ومطابقتها؟');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button class="btn btn-outline-success w-100">@Icons.Render("package", 16) تأكيد الاستلام</button>
+                    </form>
+                }
+
+                @if (canRelease)
+                {
+                    <form asp-action="ReleasePayment" method="post" onsubmit="return confirm('تحرير المبلغ المحتجز للمزارع؟');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button class="btn btn-green w-100">@Icons.Render("check-circle", 16) تحرير الدفع وإغلاق العقد</button>
+                    </form>
+                }
+
+                @if (canDispute)
+                {
+                    <button class="btn btn-outline-danger w-100" data-bs-toggle="collapse" data-bs-target="#disputeForm">@Icons.Render("alert", 16) فتح نزاع</button>
+                    <div class="collapse" id="disputeForm">
+                        <form asp-action="RaiseDispute" method="post" class="mt-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <textarea name="reason" class="form-control form-control-sm mb-2" rows="3" required
+                                      placeholder="اشرح سبب النزاع بدقة..."></textarea>
+                            <button class="btn btn-sm btn-danger w-100">إحالة للتحكيم الداخلي</button>
+                        </form>
+                    </div>
+                }
+
+                @if (canResolve)
+                {
+                    <hr />
+                    <form asp-action="ResolveDispute" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <label class="form-label small">قرار التحكيم</label>
+                        <textarea name="resolution" class="form-control form-control-sm mb-2" rows="2" required></textarea>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="refundBuyer" value="true" id="refund" />
+                            <label class="form-check-label small" for="refund">إعادة الضمان للمشتري وإلغاء العقد</label>
+                        </div>
+                        <button class="btn btn-sm btn-dark w-100">إصدار القرار</button>
+                    </form>
+                }
+
+                @if (canRate)
+                {
+                    <hr />
+                    <form asp-action="Rate" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <div class="fw-bold small mb-2">قيّم الطرف الآخر</div>
+                        @foreach (var (name, label) in new[] { ("timeliness", "الالتزام الزمني"), ("qualityConsistency", "ثبات الجودة"), ("communication", "سرعة التواصل") })
+                        {
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">@label</label>
+                                <select name="@name" class="form-select form-select-sm">
+                                    @for (var i = 5; i >= 1; i--)
+                                    {
+                                        <option value="@i">@i نجوم</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        <textarea name="comment" class="form-control form-control-sm mb-2" rows="2" placeholder="تعليق (اختياري)"></textarea>
+                        <button class="btn btn-sm btn-brand w-100">إرسال التقييم</button>
+                    </form>
+                }
+                else if (myRating is not null)
+                {
+                    <div class="alert alert-success small mb-0">
+                        قيّمت هذا العقد بـ <strong class="rtl-num">@myRating.Score.ToString("N1")</strong> من 5.
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">مسار العقد</div>
+            <div class="card-body small">
+                @{
+                    var steps = new (string Label, bool Done)[]
+                    {
+                        ("توقيع الطرفين", Model.SellerSigned && Model.BuyerSigned),
+                        ("تمويل الضمان", Model.Escrow is EscrowStatus.Held or EscrowStatus.Released),
+                        ("التحقق من الجودة", Model.Inspections.Any(i => i.Result != InspectionResult.Pending)),
+                        ("تأكيد الاستلام", Model.Status is ContractStatus.Delivered or ContractStatus.Completed),
+                        ("تحرير الدفع", Model.Escrow == EscrowStatus.Released)
+                    };
+                }
+                @foreach (var s in steps)
+                {
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>@s.Label</span>
+                        <span class="@(s.Done ? "done" : "todo")">@Icons.Render(s.Done ? "check-circle" : "clock", 16)</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var r = document.getElementById('inspResult');
+        if (r) {
+            var d = document.getElementById('inspDiscount');
+            r.addEventListener('change', function () { d.disabled = (r.value !== '2'); });
+            d.disabled = true;
+        }
+    </script>
+}

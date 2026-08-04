@@ -1,0 +1,125 @@
+@model List<Auction>
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = "المزادات";
+    var crops = ViewBag.Crops as List<SelectListItem> ?? new();
+    var regions = ViewBag.Regions as List<string> ?? new();
+    bool mine = ViewBag.Mine ?? false;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <h5 class="fw-bold mb-0">@(mine ? "مزاداتي" : "سوق المزادات")</h5>
+    <div class="d-flex gap-2">
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a class="btn btn-sm @(mine ? "btn-green" : "btn-outline-secondary")"
+               asp-action="Index" asp-route-mine="@(!mine)">@(mine ? "عرض السوق" : "مزاداتي")</a>
+        }
+        @if (User.IsInRole(Roles.Farmer) || User.IsInRole(Roles.Broker) || User.IsInRole(Roles.Admin))
+        {
+            <a class="btn btn-sm btn-brand" asp-action="Create">إنشاء مزاد</a>
+        }
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="mine" value="@mine.ToString().ToLower()" />
+            <div class="col-md-3">
+                <label class="form-label">المحصول</label>
+                <select name="cropId" class="form-select">
+                    <option value="">الكل</option>
+                    @foreach (var c in crops)
+                    {
+                        <option value="@c.Value" selected="@c.Selected">@c.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">نوع المزاد</label>
+                <select name="type" class="form-select">
+                    <option value="">الكل</option>
+                    <option value="1" selected="@(ViewBag.Type as AuctionType? == AuctionType.Instant)">لحظي</option>
+                    <option value="2" selected="@(ViewBag.Type as AuctionType? == AuctionType.Future)">مستقبلي</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">المنطقة</label>
+                <select name="region" class="form-select">
+                    <option value="">الكل</option>
+                    @foreach (var r in regions)
+                    {
+                        <option value="@r" selected="@(r == (ViewBag.Region as string))">@r</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">بحث</label>
+                <input name="q" class="form-control" value="@ViewBag.Q" placeholder="عنوان أو محصول" />
+            </div>
+            <div class="col-md-1 d-grid">
+                <button class="btn btn-green">تصفية</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card"><div class="card-body text-center text-muted py-5">لا توجد مزادات مطابقة.</div></div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var a in Model)
+        {
+            <div class="col-md-6 col-xl-4">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-@Display.AuctionStatusCss(a.Status)">@Display.AuctionStatus(a.Status)</span>
+                            <span class="badge bg-light text-dark">@Display.AuctionType(a.Type)</span>
+                        </div>
+
+                        <h6 class="fw-bold mb-1">@a.Title</h6>
+                        <div class="muted-label mb-3">
+                            @a.Crop?.Name · @Display.Quality(a.Quality) · @a.Farmer?.Region
+                        </div>
+
+                        <div class="row g-2 mb-3 small">
+                            <div class="col-6">
+                                <div class="muted-label">الكمية</div>
+                                <div class="rtl-num fw-semibold">@a.Quantity.ToString("N0") @a.DisplayUnit</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="muted-label">السعر الحالي</div>
+                                <div class="price-tag rtl-num">@a.CurrentPrice.ToString("N2")</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="muted-label">المزايدات</div>
+                                <div class="fw-semibold">@a.Bids.Count</div>
+                            </div>
+                            <div class="col-6">
+                                <div class="muted-label">يغلق في</div>
+                                <div class="rtl-num fw-semibold">@a.EndDate.ToString("yyyy/MM/dd")</div>
+                            </div>
+                        </div>
+
+                        <div class="muted-label mb-2">
+                            المزارع: @a.Farmer?.FullName
+                            @if (a.Broker is not null)
+                            {
+                                <span>· الوسيط: @a.Broker.FullName</span>
+                            }
+                        </div>
+
+                        <a class="btn btn-outline-success btn-sm mt-auto" asp-action="Details" asp-route-id="@a.Id">
+                            التفاصيل والمزايدة
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

@@ -1,0 +1,99 @@
+@model Tender
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = "طرح مناقصة";
+    var crops = ViewBag.Crops as List<SelectListItem> ?? new();
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="card">
+            <div class="card-header">طرح مناقصة توريد جديدة</div>
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label asp-for="Title" class="form-label required"></label>
+                            <input asp-for="Title" class="form-control" placeholder="مثال: توريد بطاطس شهري لفروع المنطقة الوسطى" />
+                            <span asp-validation-for="Title" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="CropId" class="form-label required"></label>
+                            <select asp-for="CropId" class="form-select" asp-items="crops">
+                                <option value="">— اختر المحصول —</option>
+                            </select>
+                            <span asp-validation-for="CropId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Quantity" class="form-label required"></label>
+                            <input asp-for="Quantity" class="form-control" type="number" step="0.01" />
+                            <span asp-validation-for="Quantity" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="RequiredQuality" class="form-label"></label>
+                            <select asp-for="RequiredQuality" class="form-select">
+                                <option value="1">ممتاز</option>
+                                <option value="2">درجة أولى</option>
+                                <option value="3">درجة ثانية</option>
+                                <option value="4">درجة ثالثة</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="MaxUnitPrice" class="form-label required"></label>
+                            <input asp-for="MaxUnitPrice" class="form-control" type="number" step="0.01" />
+                            <div class="form-text">العروض التي تتجاوز السقف تُرفض آلياً.</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="ClosingDate" class="form-label required"></label>
+                            <input asp-for="ClosingDate" class="form-control" type="date" value="@Model.ClosingDate.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="ClosingDate" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="DeliveryDate" class="form-label required"></label>
+                            <input asp-for="DeliveryDate" class="form-control" type="date" value="@Model.DeliveryDate.ToString("yyyy-MM-dd")" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Logistics" class="form-label"></label>
+                            <select asp-for="Logistics" class="form-select">
+                                <option value="1">على البائع (المزارع)</option>
+                                <option value="2">على المشتري</option>
+                                <option value="3">ينظمها الوسيط</option>
+                                <option value="4">مزود خدمة خارجي</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="DeliveryLocation" class="form-label"></label>
+                            <input asp-for="DeliveryLocation" class="form-control" placeholder="المستودع أو نقطة الاستلام" />
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Specifications" class="form-label"></label>
+                            <textarea asp-for="Specifications" class="form-control" rows="4"
+                                      placeholder="الأحجام، نسب التلف المسموحة، نوع العبوات، سلسلة التبريد، الشهادات المطلوبة..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-green px-4">نشر المناقصة</button>
+                        <a class="btn btn-outline-secondary" asp-action="Index">إلغاء</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

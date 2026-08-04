@@ -1,0 +1,156 @@
+@model List<CompanyProfile>
+@{
+    ViewData["Title"] = "الفروع";
+    int pending = ViewBag.PendingCount ?? 0;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h5 class="fw-bold mb-1">فروع الشركة</h5>
+        <div class="muted-label">أنشئ فروعاً، وامنح كل فرع صلاحياته وحدّ مزايدته.</div>
+    </div>
+    <div class="d-flex gap-2">
+        @if (pending > 0)
+        {
+            <a class="btn btn-sm btn-brand" asp-action="Activity">
+                @Icons.Render("clock", 16) موافقات معلّقة <span class="badge bg-light ms-1 rtl-num">@pending</span>
+            </a>
+        }
+        <button class="btn btn-sm btn-green" data-bs-toggle="collapse" data-bs-target="#newBranch">
+            @Icons.Render("plus", 16) إضافة فرع
+        </button>
+    </div>
+</div>
+
+<!-- نموذج إضافة فرع -->
+<div class="collapse mb-3" id="newBranch">
+    <div class="card">
+        <div class="card-header">إنشاء فرع جديد</div>
+        <div class="card-body">
+            <form asp-action="CreateBranch" method="post">
+                @Html.AntiForgeryToken()
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label required">اسم الفرع</label>
+                        <input name="branchName" class="form-control" required placeholder="مثال: فرع صلالة" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label required">بريد الدخول</label>
+                        <input name="email" type="email" class="form-control" dir="ltr" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label required">كلمة المرور</label>
+                        <input name="password" class="form-control" dir="ltr" required minlength="6" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">المنطقة</label>
+                        <input name="region" class="form-control" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">حد المزايدة (القيمة الإجمالية ر.ع)</label>
+                        <input name="bidLimit" type="number" step="0.01" min="0" value="0" class="form-control" />
+                        <div class="form-text">صفر = بلا حد. تجاوز الحد يُرسل مزايدة الفرع لموافقتك.</div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="w-100">
+                            <label class="form-label d-block">الصلاحيات</label>
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="canBid" value="true" checked id="nb-bid" />
+                                    <label class="form-check-label" for="nb-bid">المزايدة</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="canCreateTenders" value="true" id="nb-tender" />
+                                    <label class="form-check-label" for="nb-tender">طرح مناقصات</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="canManageContracts" value="true" id="nb-contract" />
+                                    <label class="form-check-label" for="nb-contract">توقيع العقود</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" name="canSubmitOffers" value="false" />
+                <button type="submit" class="btn btn-green mt-3">إنشاء الفرع</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card"><div class="card-body">
+        <div class="empty-state">
+            <span class="ico">@Icons.Render("building", 22)</span>
+            لا توجد فروع بعد. أنشئ أول فرع لشركتك.
+        </div>
+    </div></div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var b in Model)
+        {
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="d-flex align-items-center gap-2">@Icons.Render("building", 16) @b.CompanyName</span>
+                        <span class="muted-label rtl-num">@b.User?.Email</span>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="EditBranch" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="branchUserId" value="@b.UserId" />
+
+                            <div class="row g-2 small mb-3">
+                                <div class="col-6">
+                                    <div class="muted-label">المنطقة</div>
+                                    <div>@(b.User?.Region ?? "—")</div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="muted-label">التقييم</div>
+                                    <div class="d-flex align-items-center gap-1">@Icons.Render("star", 13) <span class="rtl-num">@(b.User?.RatingAverage.ToString("N1") ?? "0.0")</span></div>
+                                </div>
+                            </div>
+
+                            <label class="form-label">حد المزايدة (القيمة الإجمالية ر.ع)</label>
+                            <input name="bidLimit" type="number" step="0.01" min="0" value="@b.BidLimit" class="form-control mb-1" />
+                            <div class="form-text mb-3">
+                                @(b.BidLimit <= 0 ? "بلا حد — يزايد بحرية." : $"ما يتجاوز {b.BidLimit:N2} يُرسل لموافقتك.")
+                            </div>
+
+                            <div class="d-flex flex-wrap gap-3 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="canBid" value="true" checked="@b.CanBid" id="bid-@b.Id" />
+                                    <label class="form-check-label" for="bid-@b.Id">المزايدة</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="canCreateTenders" value="true" checked="@b.CanCreateTenders" id="tender-@b.Id" />
+                                    <label class="form-check-label" for="tender-@b.Id">طرح مناقصات</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="canManageContracts" value="true" checked="@b.CanManageContracts" id="contract-@b.Id" />
+                                    <label class="form-check-label" for="contract-@b.Id">توقيع العقود</label>
+                                </div>
+                            </div>
+                            <input type="hidden" name="canSubmitOffers" value="false" />
+
+                            <button type="submit" class="btn btn-sm btn-green">حفظ التغييرات</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<div class="card mt-3">
+    <div class="card-body small text-muted d-flex gap-2 align-items-start">
+        @Icons.Render("shield-check", 17)
+        <div>
+            كل فرع حساب مستقل بدخوله الخاص، لكنه يبقى تحت إشرافك: ترى نشاطه في المزادات (فروعك فقط،
+            لا منافسيك)، وتوافق على أي مزايدة تتجاوز حدّه، ويمكنك التوقيع على عقوده نيابةً عنه.
+        </div>
+    </div>
+</div>

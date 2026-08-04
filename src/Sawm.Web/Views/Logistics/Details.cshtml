@@ -1,0 +1,131 @@
+@model LogisticsRequest
+@{
+    ViewData["Title"] = "طلب نقل";
+    bool isOwner = ViewBag.IsOwner ?? false;
+    var myOffer = ViewBag.MyOffer as LogisticsOffer;
+}
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="fw-bold mb-0">@Model.FromLocation ← @Model.ToLocation</h5>
+                    <span class="badge bg-@(Model.Status == LogisticsRequestStatus.Open ? "success" : "secondary") fs-6">
+                        @Display.LogisticsStatus(Model.Status)
+                    </span>
+                </div>
+
+                <div class="row g-3 small">
+                    <div class="col-md-3">
+                        <div class="muted-label">الوزن</div>
+                        <div class="fw-semibold rtl-num">@Model.WeightKg.ToString("N0") كجم</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="muted-label">التبريد</div>
+                        <div class="fw-semibold">@(Model.NeedsRefrigeration ? "مطلوب" : "غير مطلوب")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="muted-label">موعد التحميل</div>
+                        <div class="fw-semibold rtl-num">@Model.PickupDate.ToString("yyyy/MM/dd")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="muted-label">الطالب</div>
+                        <div class="fw-semibold">@Model.Requester?.FullName</div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.Notes))
+                    {
+                        <div class="col-12">
+                            <div class="muted-label">تفاصيل إضافية</div>
+                            <div>@Model.Notes</div>
+                        </div>
+                    }
+                    @if (Model.Contract is not null)
+                    {
+                        <div class="col-12">
+                            <a class="small" asp-controller="Contracts" asp-action="Details" asp-route-id="@Model.ContractId">
+                                العقد المرتبط: <span class="rtl-num">@Model.Contract.ContractNumber</span>
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">عروض مزودي النقل (@Model.Offers.Count)</div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead><tr><th>المزود</th><th>السعر</th><th>ملاحظات</th><th>الحالة</th><th></th></tr></thead>
+                    <tbody>
+                    @if (!Model.Offers.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-4">لا توجد عروض بعد.</td></tr>
+                    }
+                    @foreach (var o in Model.Offers.OrderBy(x => x.Price))
+                    {
+                        <tr class="@(o.Status == OfferStatus.Awarded ? "table-success" : "")">
+                            <td class="small fw-semibold">@o.Provider?.FullName</td>
+                            <td class="rtl-num fw-bold">@o.Price.ToString("N2")</td>
+                            <td class="small text-muted">@o.Notes</td>
+                            <td><span class="badge bg-secondary">@Display.OfferStatus(o.Status)</span></td>
+                            <td>
+                                @if (isOwner && Model.Status == LogisticsRequestStatus.Open)
+                                {
+                                    <form asp-action="Award" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@Model.Id" />
+                                        <input type="hidden" name="offerId" value="@o.Id" />
+                                        <button class="btn btn-sm btn-green">ترسية</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">الإجراءات</div>
+            <div class="card-body">
+                @if (!isOwner && Model.Status == LogisticsRequestStatus.Open)
+                {
+                    <form asp-action="Offer" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <label class="form-label">السعر المعروض (ر.ع)</label>
+                        <input name="price" type="number" step="0.01" class="form-control mb-2" required
+                               value="@(myOffer?.Price)" />
+                        <label class="form-label">ملاحظات</label>
+                        <textarea name="notes" class="form-control mb-2" rows="2">@myOffer?.Notes</textarea>
+                        <button class="btn btn-green w-100">@(myOffer is null ? "تقديم عرض" : "تحديث عرضي")</button>
+                    </form>
+                }
+                else if (isOwner && Model.Status == LogisticsRequestStatus.Awarded)
+                {
+                    <form asp-action="Complete" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button class="btn btn-green w-100">تأكيد إتمام النقل</button>
+                    </form>
+                }
+                else
+                {
+                    <div class="text-muted small">لا توجد إجراءات متاحة حالياً.</div>
+                }
+                <a class="btn btn-outline-secondary w-100 mt-2" asp-action="Index">العودة للسوق</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body small text-muted">
+                حدود المسؤولية: ساوم توفّر إطاراً رقمياً للربط والتوثيق بين الطرفين ومزود الخدمة،
+                ولا تتحمل أي مسؤولية عن النقل أو التخزين أو التأمين أو التأخير.
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,16 @@
+@model ErrorViewModel
+@{
+    ViewData["Title"] = "خطأ";
+}
+
+<div class="card">
+    <div class="card-body text-center py-5">
+        <h3 class="fw-bold text-danger mb-3">حدث خطأ غير متوقع</h3>
+        <p class="text-muted">تعذّر إتمام العملية. حاول مرة أخرى، وإذا تكرر الخطأ تواصل مع الدعم الفني.</p>
+        @if (Model?.ShowRequestId ?? false)
+        {
+            <p class="small text-muted">معرّف الطلب: <code class="rtl-num">@Model.RequestId</code></p>
+        }
+        <a class="btn btn-green mt-2" asp-controller="Home" asp-action="Index">العودة للرئيسية</a>
+    </div>
+</div>

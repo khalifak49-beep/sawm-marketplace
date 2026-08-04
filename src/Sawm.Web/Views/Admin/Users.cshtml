@@ -1,0 +1,67 @@
+@model List<ApplicationUser>
+@{
+    ViewData["Title"] = "المستخدمون";
+    var type = ViewBag.Type as UserType?;
+}
+
+<h5 class="fw-bold mb-3">إدارة المستخدمين</h5>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">نوع الحساب</label>
+                <select name="type" class="form-select">
+                    <option value="">الكل</option>
+                    <option value="1" selected="@(type == UserType.Farmer)">مزارع</option>
+                    <option value="2" selected="@(type == UserType.Broker)">وسيط</option>
+                    <option value="3" selected="@(type == UserType.Company)">شركة</option>
+                    <option value="4" selected="@(type == UserType.Admin)">إدارة</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">بحث بالاسم أو البريد</label>
+                <input name="q" class="form-control" value="@ViewBag.Q" />
+            </div>
+            <div class="col-md-2 d-grid"><button class="btn btn-green">تصفية</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead><tr><th>الاسم</th><th>النوع</th><th>البريد</th><th>الهاتف</th><th>المنطقة</th><th>التقييم</th><th>التوثيق</th><th>التسجيل</th><th></th></tr></thead>
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="9" class="text-center text-muted py-5">لا توجد نتائج.</td></tr>
+            }
+            @foreach (var u in Model)
+            {
+                <tr>
+                    <td class="fw-semibold small">@u.FullName</td>
+                    <td><span class="role-chip">@Display.UserType(u.UserType)</span></td>
+                    <td class="rtl-num small">@u.Email</td>
+                    <td class="rtl-num small">@u.PhoneNumber</td>
+                    <td class="small">@u.Region</td>
+                    <td class="small text-warning">@Icons.Render("star", 13) @u.RatingAverage.ToString("N1") <span class="muted-label">(@u.RatingCount)</span></td>
+                    <td>
+                        <span class="badge bg-@(u.IsVerified ? "success" : "secondary")">@(u.IsVerified ? "موثّق" : "غير موثّق")</span>
+                    </td>
+                    <td class="rtl-num small">@u.CreatedAt.ToString("yyyy/MM/dd")</td>
+                    <td>
+                        <form asp-action="ToggleVerify" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@u.Id" />
+                            <button class="btn btn-sm btn-outline-@(u.IsVerified ? "danger" : "success")">
+                                @(u.IsVerified ? "إلغاء التوثيق" : "توثيق")
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

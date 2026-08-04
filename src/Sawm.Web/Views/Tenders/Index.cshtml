@@ -1,0 +1,81 @@
+@model List<Tender>
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = "المناقصات";
+    var crops = ViewBag.Crops as List<SelectListItem> ?? new();
+    bool mine = ViewBag.Mine ?? false;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <h5 class="fw-bold mb-0">@(mine ? "مناقصاتي" : "المناقصات المؤسسية")</h5>
+    <div class="d-flex gap-2">
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a class="btn btn-sm @(mine ? "btn-green" : "btn-outline-secondary")"
+               asp-action="Index" asp-route-mine="@(!mine)">@(mine ? "عرض الكل" : "مناقصاتي")</a>
+        }
+        @if (User.IsInRole(Roles.Company) || User.IsInRole(Roles.Admin))
+        {
+            <a class="btn btn-sm btn-brand" asp-action="Create">طرح مناقصة</a>
+        }
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <input type="hidden" name="mine" value="@mine.ToString().ToLower()" />
+            <div class="col-md-4">
+                <label class="form-label">المحصول</label>
+                <select name="cropId" class="form-select">
+                    <option value="">الكل</option>
+                    @foreach (var c in crops)
+                    {
+                        <option value="@c.Value" selected="@c.Selected">@c.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">بحث</label>
+                <input name="q" class="form-control" value="@ViewBag.Q" placeholder="عنوان المناقصة أو المحصول" />
+            </div>
+            <div class="col-md-2 d-grid">
+                <button class="btn btn-green">تصفية</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>المناقصة</th><th>الجهة الطالبة</th><th>المحصول</th>
+                    <th>الكمية</th><th>السقف السعري</th><th>يغلق في</th>
+                    <th>العروض</th><th>الحالة</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="9" class="text-center text-muted py-5">لا توجد مناقصات مطابقة.</td></tr>
+            }
+            @foreach (var t in Model)
+            {
+                <tr>
+                    <td class="fw-semibold">@t.Title</td>
+                    <td class="small">@t.Company?.FullName</td>
+                    <td class="small">@t.Crop?.Name<div class="muted-label">@Display.Quality(t.RequiredQuality)</div></td>
+                    <td class="rtl-num small">@t.Quantity.ToString("N0") @t.Crop?.Unit</td>
+                    <td class="rtl-num small">@t.MaxUnitPrice.ToString("N2")</td>
+                    <td class="rtl-num small">@t.ClosingDate.ToString("yyyy/MM/dd")</td>
+                    <td><span class="badge bg-secondary">@t.Offers.Count</span></td>
+                    <td><span class="badge bg-@Display.TenderStatusCss(t.Status)">@Display.TenderStatus(t.Status)</span></td>
+                    <td><a class="btn btn-sm btn-outline-success" asp-action="Details" asp-route-id="@t.Id">عرض</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

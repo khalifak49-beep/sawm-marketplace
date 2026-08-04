@@ -1,0 +1,77 @@
+@model List<Contract>
+@{
+    ViewData["Title"] = "العقود";
+    var status = ViewBag.Status as ContractStatus?;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <h5 class="fw-bold mb-0">العقود الرقمية</h5>
+    <div class="btn-group btn-group-sm">
+        <a class="btn @(status == null ? "btn-green" : "btn-outline-secondary")" asp-action="Index">الكل</a>
+        <a class="btn @(status == ContractStatus.AwaitingSignatures ? "btn-green" : "btn-outline-secondary")"
+           asp-action="Index" asp-route-status="@ContractStatus.AwaitingSignatures">بانتظار التوقيع</a>
+        <a class="btn @(status == ContractStatus.Active ? "btn-green" : "btn-outline-secondary")"
+           asp-action="Index" asp-route-status="@ContractStatus.Active">نشطة</a>
+        <a class="btn @(status == ContractStatus.Completed ? "btn-green" : "btn-outline-secondary")"
+           asp-action="Index" asp-route-status="@ContractStatus.Completed">مكتملة</a>
+        <a class="btn @(status == ContractStatus.Disputed ? "btn-green" : "btn-outline-secondary")"
+           asp-action="Index" asp-route-status="@ContractStatus.Disputed">نزاعات</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>رقم العقد</th><th>المحصول</th><th>البائع</th><th>المشتري</th><th>الوسيط</th>
+                    <th>الكمية</th><th>القيمة</th><th>الضمان</th><th>الحالة</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="10" class="text-center text-muted py-5">لا توجد عقود.</td></tr>
+            }
+            @foreach (var c in Model)
+            {
+                <tr>
+                    <td class="rtl-num small fw-semibold">@c.ContractNumber</td>
+                    <td class="small">@c.Crop?.Name</td>
+                    <td class="small">@c.Seller?.FullName</td>
+                    <td class="small">@c.Buyer?.FullName</td>
+                    <td class="small">@(c.Broker?.FullName ?? "—")</td>
+                    <td class="rtl-num small">@c.Quantity.ToString("N0")</td>
+                    <td class="rtl-num fw-bold">@c.TotalValue.ToString("N2")</td>
+                    <td>
+                        <span class="badge bg-@(c.Escrow == EscrowStatus.Held ? "warning" : c.Escrow == EscrowStatus.Released ? "success" : "secondary")">
+                            @Display.Escrow(c.Escrow)
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-@Display.ContractStatusCss(c.Status)">@Display.ContractStatus(c.Status)</span>
+                        @if (c.Status == ContractStatus.AwaitingSignatures)
+                        {
+                            <div class="muted-label mt-1">
+                                @if (!c.SellerSigned && !c.BuyerSigned)
+                                {
+                                    <span>لم يوقّع أحد بعد</span>
+                                }
+                                else if (!c.SellerSigned)
+                                {
+                                    <span>بانتظار البائع</span>
+                                }
+                                else
+                                {
+                                    <span>بانتظار المشتري</span>
+                                }
+                            </div>
+                        }
+                    </td>
+                    <td><a class="btn btn-sm btn-outline-success" asp-action="Details" asp-route-id="@c.Id">فتح</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

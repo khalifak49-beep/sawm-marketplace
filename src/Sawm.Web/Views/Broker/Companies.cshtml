@@ -1,0 +1,50 @@
+@model List<ApplicationUser>
+@{
+    ViewData["Title"] = "دليل الشركات";
+    var counts = ViewBag.OpenTenderCounts as Dictionary<string, int> ?? new();
+}
+
+<h5 class="fw-bold mb-3">دليل الشركات المشترية</h5>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-10">
+                <label class="form-label">بحث باسم الشركة</label>
+                <input name="q" class="form-control" value="@ViewBag.Q" />
+            </div>
+            <div class="col-md-2 d-grid"><button class="btn btn-green">بحث</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr><th>الشركة</th><th>النشاط</th><th>السجل التجاري</th><th>الطلب الشهري</th><th>التقييم</th><th>مناقصات مفتوحة</th><th></th></tr>
+            </thead>
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="7" class="text-center text-muted py-5">لا توجد نتائج.</td></tr>
+            }
+            @foreach (var c in Model)
+            {
+                <tr>
+                    <td>
+                        <div class="fw-semibold small">@(c.CompanyProfile?.CompanyName ?? c.FullName)</div>
+                        <div class="muted-label">@c.Region</div>
+                    </td>
+                    <td class="small">@(c.CompanyProfile?.ActivityType ?? "—")</td>
+                    <td class="small rtl-num">@(c.CompanyProfile?.CommercialRegistry ?? "—")</td>
+                    <td class="small rtl-num">@(c.CompanyProfile?.MonthlyDemand.ToString("N0") ?? "—") طن</td>
+                    <td class="text-warning small">@Icons.Render("star", 13) @c.RatingAverage.ToString("N1")</td>
+                    <td><span class="badge bg-secondary">@(counts.TryGetValue(c.Id, out var n) ? n : 0)</span></td>
+                    <td><a class="btn btn-sm btn-outline-success" asp-controller="Tenders" asp-action="Index">مناقصاتها</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

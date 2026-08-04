@@ -1,0 +1,69 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "تسجيل الدخول";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-1">تسجيل الدخول</h5>
+                <p class="text-muted small mb-4">ادخل إلى حسابك في منصة ساوم.</p>
+
+                <form asp-action="Login" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ReturnUrl" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label required"></label>
+                        <input asp-for="Email" class="form-control" dir="ltr" autocomplete="username" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label required"></label>
+                        <input asp-for="Password" class="form-control" dir="ltr" autocomplete="current-password" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input asp-for="RememberMe" class="form-check-input" />
+                        <label asp-for="RememberMe" class="form-check-label"></label>
+                    </div>
+
+                    <button type="submit" class="btn btn-green w-100">دخول</button>
+                </form>
+
+                <hr class="my-4" />
+                <div class="text-center small">
+                    ليس لديك حساب؟ <a asp-action="Register">أنشئ حساباً جديداً</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body small">
+                <div class="fw-bold mb-2">حسابات تجريبية</div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-sm btn-outline-secondary fill-demo" data-email="farmer1@sawm.om">مزارع</button>
+                    <button class="btn btn-sm btn-outline-secondary fill-demo" data-email="broker1@sawm.om">وسيط</button>
+                    <button class="btn btn-sm btn-outline-secondary fill-demo" data-email="company1@sawm.om">شركة</button>
+                    <button class="btn btn-sm btn-outline-secondary fill-demo" data-email="admin@sawm.om">إدارة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelectorAll('.fill-demo').forEach(function (b) {
+            b.addEventListener('click', function () {
+                document.getElementById('Email').value = this.dataset.email;
+                document.getElementById('Password').value = 'Sawm@2026';
+            });
+        });
+    </script>
+}

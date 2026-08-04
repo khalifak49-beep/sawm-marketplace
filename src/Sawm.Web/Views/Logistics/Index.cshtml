@@ -1,0 +1,57 @@
+@model List<LogisticsRequest>
+@{
+    ViewData["Title"] = "سوق اللوجستيات";
+    bool mine = ViewBag.Mine ?? false;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h5 class="fw-bold mb-1">سوق اللوجستيات</h5>
+        <div class="muted-label">سوق مستقل داخل المنصة — ساوم تربط وتوثّق فقط، ولا تنفّذ النقل ولا تضمن توفّر وسائل الشحن.</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-sm @(mine ? "btn-green" : "btn-outline-secondary")" asp-action="Index" asp-route-mine="@(!mine)">
+            @(mine ? "عرض الكل" : "طلباتي وعروضي")
+        </a>
+        <a class="btn btn-sm btn-brand" asp-action="Create">نشر طلب نقل</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr><th>المسار</th><th>الطالب</th><th>الوزن</th><th>تبريد</th><th>موعد التحميل</th><th>العروض</th><th>الحالة</th><th></th></tr>
+            </thead>
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="8" class="text-center text-muted py-5">لا توجد طلبات نقل.</td></tr>
+            }
+            @foreach (var r in Model)
+            {
+                <tr>
+                    <td>
+                        <div class="fw-semibold small">@r.FromLocation ← @r.ToLocation</div>
+                        @if (r.Contract is not null)
+                        {
+                            <div class="muted-label rtl-num">مرتبط بالعقد @r.Contract.ContractNumber</div>
+                        }
+                    </td>
+                    <td class="small">@r.Requester?.FullName</td>
+                    <td class="rtl-num small">@r.WeightKg.ToString("N0") كجم</td>
+                    <td>@(r.NeedsRefrigeration ? "نعم" : "—")</td>
+                    <td class="rtl-num small">@r.PickupDate.ToString("yyyy/MM/dd")</td>
+                    <td><span class="badge bg-secondary">@r.Offers.Count</span></td>
+                    <td>
+                        <span class="badge bg-@(r.Status == LogisticsRequestStatus.Open ? "success" : r.Status == LogisticsRequestStatus.Awarded ? "primary" : "secondary")">
+                            @Display.LogisticsStatus(r.Status)
+                        </span>
+                    </td>
+                    <td><a class="btn btn-sm btn-outline-success" asp-action="Details" asp-route-id="@r.Id">فتح</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

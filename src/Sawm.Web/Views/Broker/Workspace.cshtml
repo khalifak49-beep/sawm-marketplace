@@ -1,0 +1,156 @@
+@model BrokerWorkspaceViewModel
+@{
+    ViewData["Title"] = "مساحة الوسيط";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <h5 class="fw-bold mb-0">مساحة عمل الوسيط</h5>
+    <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Farmers">دليل المزارعين</a>
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Companies">دليل الشركات</a>
+        <a class="btn btn-sm btn-brand" asp-controller="Auctions" asp-action="Create">إنشاء مزاد لمزارع</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-value rtl-num">@Model.EarnedCommission.ToString("N2")</div>
+            <div class="stat-label">عمولات محققة (ر.ع)</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-value rtl-num">@Model.PipelineCommission.ToString("N2")</div>
+            <div class="stat-label">عمولات قيد التنفيذ</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-value rtl-num">@Model.CommissionRate.ToString("N1")%</div>
+            <div class="stat-label">نسبة عمولتك</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-value">@Model.PendingApproval.Count</div>
+            <div class="stat-label">مزادات متاحة للتبنّي</div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header">مزادات متاحة للتبنّي (بلا وسيط — بانتظار اعتماد الإدارة)</div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead><tr><th>المزاد</th><th>المزارع</th><th>المحصول</th><th>الكمية</th><th>سعر الافتتاح</th><th></th></tr></thead>
+            <tbody>
+            @if (!Model.PendingApproval.Any())
+            {
+                <tr><td colspan="6" class="text-center text-muted py-4">لا توجد مزادات تنتظر الاعتماد.</td></tr>
+            }
+            @foreach (var a in Model.PendingApproval)
+            {
+                <tr>
+                    <td class="fw-semibold small">@a.Title</td>
+                    <td class="small">@a.Farmer?.FullName<div class="muted-label">@a.Farmer?.Region</div></td>
+                    <td class="small">@a.Crop?.Name</td>
+                    <td class="rtl-num small">@a.Quantity.ToString("N0")</td>
+                    <td class="rtl-num small">@a.StartPrice.ToString("N2")</td>
+                    <td class="text-nowrap">
+                        <a class="btn btn-sm btn-outline-secondary" asp-controller="Auctions" asp-action="Details" asp-route-id="@a.Id">تفاصيل</a>
+                        <form asp-controller="Auctions" asp-action="Adopt" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@a.Id" />
+                            <button class="btn btn-sm btn-green">تبنّي الإشراف</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">مزادات تحت إشرافك</div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead><tr><th>المزاد</th><th>المزايدات</th><th>السعر الحالي</th><th>الحالة</th><th></th></tr></thead>
+                    <tbody>
+                    @if (!Model.ManagedAuctions.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-4">لا توجد مزادات بعد.</td></tr>
+                    }
+                    @foreach (var a in Model.ManagedAuctions)
+                    {
+                        <tr>
+                            <td class="small fw-semibold">@a.Title<div class="muted-label">@a.Farmer?.FullName</div></td>
+                            <td><span class="badge bg-secondary">@a.Bids.Count</span></td>
+                            <td class="rtl-num small">@a.CurrentPrice.ToString("N2")</td>
+                            <td><span class="badge bg-@Display.AuctionStatusCss(a.Status)">@Display.AuctionStatus(a.Status)</span></td>
+                            <td><a class="btn btn-sm btn-outline-success" asp-controller="Auctions" asp-action="Details" asp-route-id="@a.Id">فتح</a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">مناقصات مفتوحة — فرص تمثيل</div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead><tr><th>المناقصة</th><th>الكمية</th><th>السقف</th><th>يغلق</th><th></th></tr></thead>
+                    <tbody>
+                    @if (!Model.OpenTenders.Any())
+                    {
+                        <tr><td colspan="5" class="text-center text-muted py-4">لا توجد مناقصات مفتوحة.</td></tr>
+                    }
+                    @foreach (var t in Model.OpenTenders)
+                    {
+                        <tr>
+                            <td class="small fw-semibold">@t.Title<div class="muted-label">@t.Company?.FullName</div></td>
+                            <td class="rtl-num small">@t.Quantity.ToString("N0")</td>
+                            <td class="rtl-num small">@t.MaxUnitPrice.ToString("N2")</td>
+                            <td class="rtl-num small">@t.ClosingDate.ToString("MM/dd")</td>
+                            <td><a class="btn btn-sm btn-brand" asp-controller="Tenders" asp-action="Offer" asp-route-id="@t.Id">قدّم عرضاً</a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">عقود تحت وساطتك</div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead><tr><th>رقم العقد</th><th>البائع</th><th>المشتري</th><th>القيمة</th><th>عمولتك</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+            @if (!Model.BrokeredContracts.Any())
+            {
+                <tr><td colspan="7" class="text-center text-muted py-4">لا توجد عقود بعد.</td></tr>
+            }
+            @foreach (var c in Model.BrokeredContracts)
+            {
+                <tr>
+                    <td class="rtl-num small">@c.ContractNumber</td>
+                    <td class="small">@c.Seller?.FullName</td>
+                    <td class="small">@c.Buyer?.FullName</td>
+                    <td class="rtl-num small">@c.TotalValue.ToString("N2")</td>
+                    <td class="rtl-num fw-bold text-success">@c.BrokerCommission.ToString("N2")</td>
+                    <td><span class="badge bg-@Display.ContractStatusCss(c.Status)">@Display.ContractStatus(c.Status)</span></td>
+                    <td><a class="btn btn-sm btn-outline-success" asp-controller="Contracts" asp-action="Details" asp-route-id="@c.Id">فتح</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

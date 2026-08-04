@@ -1,0 +1,89 @@
+@{
+    ViewData["Title"] = "لوحة الإدارة";
+    var recent = ViewBag.RecentContracts as List<Contract> ?? new();
+}
+
+<h5 class="fw-bold mb-3">لوحة إدارة المنصة</h5>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card"><div class="stat-value">@ViewBag.Users</div><div class="stat-label">إجمالي المستخدمين</div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card"><div class="stat-value">@ViewBag.Farmers</div><div class="stat-label">مزارعون</div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card"><div class="stat-value">@ViewBag.Brokers</div><div class="stat-label">وسطاء</div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card"><div class="stat-value">@ViewBag.Companies</div><div class="stat-label">شركات</div></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card"><div class="stat-value">@ViewBag.Auctions</div><div class="stat-label">المزادات</div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card"><div class="stat-value">@ViewBag.Tenders</div><div class="stat-label">المناقصات</div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card"><div class="stat-value">@ViewBag.Contracts</div><div class="stat-label">العقود</div></div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card"><div class="stat-value text-danger">@ViewBag.Disputes</div><div class="stat-label">نزاعات مفتوحة</div></div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-value rtl-num">@(((decimal)ViewBag.GMV).ToString("N2"))</div>
+            <div class="stat-label">إجمالي القيمة المتداولة (ر.ع)</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-value rtl-num text-success">@(((decimal)ViewBag.Revenue).ToString("N2"))</div>
+            <div class="stat-label">إيراد عمولات المنصة</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-value rtl-num text-warning">@(((decimal)ViewBag.EscrowHeld).ToString("N2"))</div>
+            <div class="stat-label">مبالغ محتجزة في الضمان</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>أحدث العقود</span>
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Reports">التقارير التفصيلية</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead><tr><th>رقم العقد</th><th>المحصول</th><th>البائع</th><th>المشتري</th><th>الوسيط</th><th>القيمة</th><th>عمولة المنصة</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+            @if (!recent.Any())
+            {
+                <tr><td colspan="9" class="text-center text-muted py-4">لا توجد عقود.</td></tr>
+            }
+            @foreach (var c in recent)
+            {
+                <tr>
+                    <td class="rtl-num small">@c.ContractNumber</td>
+                    <td class="small">@c.Crop?.Name</td>
+                    <td class="small">@c.Seller?.FullName</td>
+                    <td class="small">@c.Buyer?.FullName</td>
+                    <td class="small">@(c.Broker?.FullName ?? "—")</td>
+                    <td class="rtl-num">@c.TotalValue.ToString("N2")</td>
+                    <td class="rtl-num text-success">@c.PlatformCommission.ToString("N2")</td>
+                    <td><span class="badge bg-@Display.ContractStatusCss(c.Status)">@Display.ContractStatus(c.Status)</span></td>
+                    <td><a class="btn btn-sm btn-outline-success" asp-controller="Contracts" asp-action="Details" asp-route-id="@c.Id">فتح</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

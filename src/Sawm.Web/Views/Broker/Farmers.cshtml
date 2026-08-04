@@ -1,0 +1,83 @@
+@model List<ApplicationUser>
+@{
+    ViewData["Title"] = "دليل المزارعين";
+    var regions = ViewBag.Regions as List<string> ?? new();
+    var counts = ViewBag.ActiveCounts as Dictionary<string, int> ?? new();
+}
+
+<h5 class="fw-bold mb-3">دليل المزارعين</h5>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">المنطقة</label>
+                <select name="region" class="form-select">
+                    <option value="">الكل</option>
+                    @foreach (var r in regions)
+                    {
+                        <option value="@r" selected="@(r == (ViewBag.Region as string))">@r</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">بحث بالاسم</label>
+                <input name="q" class="form-control" value="@ViewBag.Q" />
+            </div>
+            <div class="col-md-2 d-grid"><button class="btn btn-green">تصفية</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+@if (!Model.Any())
+{
+    <div class="col-12"><div class="card"><div class="card-body text-center text-muted py-5">لا توجد نتائج.</div></div></div>
+}
+@foreach (var f in Model)
+{
+    <div class="col-md-6 col-xl-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h6 class="fw-bold mb-0">@f.FullName</h6>
+                        <div class="muted-label">@f.Region</div>
+                    </div>
+                    @if (f.IsVerified)
+                    {
+                        <span class="badge bg-success">موثّق</span>
+                    }
+                </div>
+
+                <div class="row g-2 small mb-3">
+                    <div class="col-6">
+                        <div class="muted-label">المساحة</div>
+                        <div class="rtl-num fw-semibold">@(f.FarmerProfile?.FarmArea.ToString("N1") ?? "—") فدان</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="muted-label">الخبرة</div>
+                        <div class="rtl-num fw-semibold">@(f.FarmerProfile?.ExperienceYears ?? 0) سنة</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="muted-label">التربة / الري</div>
+                        <div>@(f.FarmerProfile?.SoilType ?? "—") / @(f.FarmerProfile?.IrrigationSource ?? "—")</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="muted-label">التقييم</div>
+                        <div class="text-warning fw-semibold">@Icons.Render("star", 13) @f.RatingAverage.ToString("N1") <span class="muted-label">(@f.RatingCount)</span></div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="badge bg-light text-dark">
+                        @(counts.TryGetValue(f.Id, out var n) ? n : 0) مزاد نشط
+                    </span>
+                    <a class="btn btn-sm btn-outline-success"
+                       asp-controller="Auctions" asp-action="Create">إنشاء مزاد له</a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+</div>

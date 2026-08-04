@@ -1,0 +1,188 @@
+@model Tender
+@{
+    ViewData["Title"] = Model.Title;
+    var offers = ViewBag.VisibleOffers as List<TenderOffer> ?? new();
+    bool isOwner = ViewBag.IsOwner ?? false;
+    bool canOffer = ViewBag.CanOffer ?? false;
+    int totalOffers = ViewBag.OffersCount ?? 0;
+    bool canAward = isOwner || User.IsInRole(Roles.Admin);
+}
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold mb-1">@Model.Title</h5>
+                        <div class="muted-label">@Model.Company?.FullName · @Model.Crop?.Name</div>
+                    </div>
+                    <span class="badge bg-@Display.TenderStatusCss(Model.Status) fs-6">@Display.TenderStatus(Model.Status)</span>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-md-3">
+                        <div class="muted-label">الكمية المطلوبة</div>
+                        <div class="fw-bold rtl-num">@Model.Quantity.ToString("N0") @Model.Crop?.Unit</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="muted-label">درجة الجودة</div>
+                        <div class="fw-bold">@Display.Quality(Model.RequiredQuality)</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="muted-label">السقف السعري</div>
+                        <div class="price-tag rtl-num">@Model.MaxUnitPrice.ToString("N2")</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="muted-label">القيمة القصوى</div>
+                        <div class="fw-bold rtl-num">@((Model.MaxUnitPrice * Model.Quantity).ToString("N0"))</div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Specifications))
+                {
+                    <div class="mb-3">
+                        <div class="muted-label mb-1">المواصفات الفنية</div>
+                        <p class="mb-0">@Model.Specifications</p>
+                    </div>
+                }
+
+                <div class="row g-3 small border-top pt-3">
+                    <div class="col-md-4">
+                        <div class="muted-label">آخر موعد للعروض</div>
+                        <div class="rtl-num">@Model.ClosingDate.ToString("yyyy/MM/dd")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="muted-label">تاريخ التسليم</div>
+                        <div class="rtl-num">@Model.DeliveryDate.ToString("yyyy/MM/dd")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="muted-label">مكان التسليم</div>
+                        <div>@(Model.DeliveryLocation ?? "—")</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="muted-label">مسؤولية اللوجستيات</div>
+                        <div>@Display.Logistics(Model.Logistics)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>العروض المقدَّمة (@totalOffers)</span>
+                @if (canAward)
+                {
+                    <span class="small text-muted">مرتّبة بدرجة المطابقة الآلية</span>
+                }
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr><th>المورد</th><th>الوسيط</th><th>السعر</th><th>الكمية</th><th>المطابقة</th><th>الحالة</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    @if (!offers.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                @(totalOffers > 0 ? "العروض مرئية لصاحب المناقصة فقط." : "لا توجد عروض بعد.")
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var o in offers)
+                    {
+                        <tr class="@(o.Status == OfferStatus.Awarded ? "table-success" : "")">
+                            <td>
+                                <div class="fw-semibold small">@o.Supplier?.FullName</div>
+                                @if (o.Supplier is { RatingCount: > 0 })
+                                {
+                                    <span class="muted-label text-warning">@Icons.Render("star", 13) @o.Supplier.RatingAverage.ToString("N1")</span>
+                                }
+                            </td>
+                            <td class="small">@(o.Broker?.FullName ?? "—")</td>
+                            <td class="rtl-num fw-bold">@o.UnitPrice.ToString("N2")</td>
+                            <td class="rtl-num small">@o.AvailableQuantity.ToString("N0")</td>
+                            <td style="min-width:110px">
+                                <div class="match-bar mb-1"><span style="width:@(o.MatchScore)%"></span></div>
+                                <div class="muted-label rtl-num">@o.MatchScore.ToString("N0")%</div>
+                            </td>
+                            <td><span class="badge bg-secondary">@Display.OfferStatus(o.Status)</span></td>
+                            <td class="text-nowrap">
+                                @if (canAward && Model.Status != TenderStatus.Awarded && Model.Status != TenderStatus.Cancelled)
+                                {
+                                    <form asp-action="Award" method="post" class="d-inline"
+                                          onsubmit="return confirm('تأكيد الترسية على هذا العرض؟ سيتم توليد عقد رقمي.');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="tenderId" value="@Model.Id" />
+                                        <input type="hidden" name="offerId" value="@o.Id" />
+                                        <button class="btn btn-sm btn-green">ترسية</button>
+                                    </form>
+                                    @if (o.Status != OfferStatus.Shortlisted)
+                                    {
+                                        <form asp-action="Shortlist" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="tenderId" value="@Model.Id" />
+                                            <input type="hidden" name="offerId" value="@o.Id" />
+                                            <button class="btn btn-sm btn-outline-secondary">قائمة مختصرة</button>
+                                        </form>
+                                    }
+                                }
+                            </td>
+                        </tr>
+                        @if (!string.IsNullOrWhiteSpace(o.Notes))
+                        {
+                            <tr class="table-light">
+                                <td colspan="7" class="small text-muted">@Icons.Render("note", 13) @o.Notes</td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header">الإجراءات</div>
+            <div class="card-body d-grid gap-2">
+                @if (canOffer && Model.IsOpen)
+                {
+                    <a class="btn btn-brand" asp-action="Offer" asp-route-id="@Model.Id">تقديم عرض</a>
+                    @if (User.IsInRole(Roles.Broker))
+                    {
+                        <div class="small text-muted">بصفتك وسيطاً، يمكنك تقديم العرض نيابة عن أحد المزارعين.</div>
+                    }
+                }
+                else if (User.Identity?.IsAuthenticated != true && Model.IsOpen)
+                {
+                    <a class="btn btn-brand" asp-controller="Account" asp-action="Login">سجّل الدخول لتقديم عرض</a>
+                }
+
+                @if (canAward && Model.Status != TenderStatus.Awarded && Model.Status != TenderStatus.Cancelled)
+                {
+                    <form asp-action="CancelTender" method="post" onsubmit="return confirm('تأكيد إلغاء المناقصة؟');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button class="btn btn-outline-danger w-100">إلغاء المناقصة</button>
+                    </form>
+                }
+
+                <a class="btn btn-outline-secondary" asp-action="Index">العودة للقائمة</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">كيف تُحتسب درجة المطابقة؟</div>
+            <div class="card-body small text-muted">
+                <ul class="mb-0 ps-3">
+                    <li><strong>السعر</strong> — حتى 40 نقطة كلما انخفض عن السقف المعلن.</li>
+                    <li><strong>تغطية الكمية</strong> — حتى 25 نقطة حسب نسبة التغطية.</li>
+                    <li><strong>سجل المورد</strong> — حتى 20 نقطة من التقييم التراكمي والتوثيق.</li>
+                    <li><strong>موعد التسليم</strong> — حتى 15 نقطة للالتزام بالتاريخ المطلوب.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,87 @@
+@model List<Bid>
+@{
+    ViewData["Title"] = "نشاط الفروع";
+    var pending = ViewBag.Pending as List<Bid> ?? new();
+}
+
+<div class="mb-3">
+    <h5 class="fw-bold mb-1">نشاط الفروع في المزادات</h5>
+    <div class="muted-label">تعرض هذه الصفحة مزايدات فروعك فقط — لا ترى مزايدات الشركات المنافسة.</div>
+</div>
+
+<!-- طابور الموافقات -->
+<div class="card mb-3">
+    <div class="card-header d-flex align-items-center gap-2">
+        @Icons.Render("clock", 17) مزايدات تجاوزت الحد — بانتظار موافقتك
+        @if (pending.Any()) { <span class="badge bg-warning rtl-num ms-1">@pending.Count</span> }
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr><th>الفرع</th><th>المزاد</th><th>سعر الوحدة</th><th>القيمة الإجمالية</th><th>الوقت</th><th></th></tr>
+            </thead>
+            <tbody>
+            @if (!pending.Any())
+            {
+                <tr><td colspan="6"><div class="empty-state"><span class="ico">@Icons.Render("check-circle", 22)</span>لا توجد مزايدات تنتظر موافقتك.</div></td></tr>
+            }
+            @foreach (var b in pending)
+            {
+                <tr class="table-warning">
+                    <td class="fw-semibold small">@b.Bidder?.FullName</td>
+                    <td class="small">
+                        @b.Auction?.Title
+                        <div class="muted-label">@b.Auction?.Crop?.Name · @b.Auction?.Farmer?.FullName</div>
+                    </td>
+                    <td class="rtl-num fw-bold">@b.UnitPrice.ToString("N2")</td>
+                    <td class="rtl-num fw-bold" style="color:var(--accent-hover)">@b.TotalValueAtBid.ToString("N2")</td>
+                    <td class="rtl-num small">@b.CreatedAt.ToString("MM/dd HH:mm")</td>
+                    <td class="text-nowrap">
+                        <form asp-action="ApproveBid" method="post" class="d-inline"
+                              onsubmit="return confirm('الموافقة على إدخال مزايدة الفرع في المزاد؟');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="bidId" value="@b.Id" />
+                            <button class="btn btn-sm btn-green">موافقة</button>
+                        </form>
+                        <form asp-action="RejectBid" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="bidId" value="@b.Id" />
+                            <button class="btn btn-sm btn-outline-danger">رفض</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- كل مزايدات الفروع -->
+<div class="card">
+    <div class="card-header">كل مزايدات الفروع</div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr><th>الفرع</th><th>المزاد</th><th>سعر الوحدة</th><th>القيمة</th><th>الحالة</th><th>الوقت</th><th></th></tr>
+            </thead>
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="7"><div class="empty-state"><span class="ico">@Icons.Render("gavel", 22)</span>لم يزايد أي فرع بعد.</div></td></tr>
+            }
+            @foreach (var b in Model)
+            {
+                <tr>
+                    <td class="fw-semibold small">@b.Bidder?.FullName</td>
+                    <td class="small">@b.Auction?.Title</td>
+                    <td class="rtl-num">@b.UnitPrice.ToString("N2")</td>
+                    <td class="rtl-num small">@((b.TotalValueAtBid > 0 ? b.TotalValueAtBid : b.UnitPrice * (b.Auction?.Quantity ?? 0)).ToString("N2"))</td>
+                    <td><span class="badge bg-@Display.BidStatusCss(b.Status)">@Display.BidStatus(b.Status)</span></td>
+                    <td class="rtl-num small">@b.CreatedAt.ToString("MM/dd HH:mm")</td>
+                    <td><a class="btn btn-sm btn-outline-success" asp-controller="Auctions" asp-action="Details" asp-route-id="@b.AuctionId">المزاد</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

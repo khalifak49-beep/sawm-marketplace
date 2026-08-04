@@ -1,0 +1,89 @@
+@{
+    ViewData["Title"] = "التقارير";
+    var topFarmers = ViewBag.TopFarmers as List<Tuple<string, decimal, int>> ?? new();
+    var topBrokers = ViewBag.TopBrokers as List<Tuple<string, decimal, int>> ?? new();
+    var byCrop = ViewBag.ByCrop as List<Tuple<string, string, decimal, decimal>> ?? new();
+}
+
+<h5 class="fw-bold mb-3">تقارير الأداء (العقود المكتملة)</h5>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">أعلى المزارعين تداولاً</div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead><tr><th>#</th><th>المزارع</th><th>القيمة المتداولة</th><th>الصفقات</th></tr></thead>
+                    <tbody>
+                    @if (!topFarmers.Any())
+                    {
+                        <tr><td colspan="4" class="text-center text-muted py-4">لا توجد بيانات كافية.</td></tr>
+                    }
+                    @{ var i = 1; }
+                    @foreach (var f in topFarmers)
+                    {
+                        <tr>
+                            <td>@i</td>
+                            <td class="small fw-semibold">@f.Item1</td>
+                            <td class="rtl-num">@f.Item2.ToString("N2")</td>
+                            <td>@f.Item3</td>
+                        </tr>
+                        i++;
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">أعلى الوسطاء عمولةً</div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead><tr><th>#</th><th>الوسيط</th><th>إجمالي العمولات</th><th>الصفقات</th></tr></thead>
+                    <tbody>
+                    @if (!topBrokers.Any())
+                    {
+                        <tr><td colspan="4" class="text-center text-muted py-4">لا توجد بيانات كافية.</td></tr>
+                    }
+                    @{ var j = 1; }
+                    @foreach (var b in topBrokers)
+                    {
+                        <tr>
+                            <td>@j</td>
+                            <td class="small fw-semibold">@b.Item1</td>
+                            <td class="rtl-num text-success">@b.Item2.ToString("N2")</td>
+                            <td>@b.Item3</td>
+                        </tr>
+                        j++;
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">التداول حسب المحصول</div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead><tr><th>المحصول</th><th>الكمية المتداولة</th><th>القيمة الإجمالية</th></tr></thead>
+            <tbody>
+            @if (!byCrop.Any())
+            {
+                <tr><td colspan="3" class="text-center text-muted py-4">لا توجد بيانات كافية.</td></tr>
+            }
+            @foreach (var c in byCrop)
+            {
+                <tr>
+                    <td class="fw-semibold small">@c.Item1</td>
+                    <td class="rtl-num">@c.Item3.ToString("N0") @c.Item2</td>
+                    <td class="rtl-num">@c.Item4.ToString("N2")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

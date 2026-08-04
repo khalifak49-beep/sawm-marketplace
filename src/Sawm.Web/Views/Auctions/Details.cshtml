@@ -1,0 +1,277 @@
+@inject UserManager<ApplicationUser> UserManager
+@model Auction
+@{
+    ViewData["Title"] = Model.Title;
+    var bids = ViewBag.RankedBids as List<Bid> ?? new();
+    bool canBid = ViewBag.CanBid ?? false;
+    bool isOwner = ViewBag.IsOwner ?? false;
+    bool isBroker = ViewBag.IsManagingBroker ?? false;
+    bool canAward = isOwner || isBroker || User.IsInRole(Roles.Admin);
+
+    // إخفاء هوية المزايدين: تُكشف فقط للإدارة، ولصاحب المزايدة، وللشركة الأم لفروعها.
+    bool revealAll = ViewBag.RevealAll ?? false;
+    var revealIds = ViewBag.RevealIds as HashSet<string> ?? new();
+    var bidderAlias = ViewBag.BidderAlias as Dictionary<string, int> ?? new();
+    var myUid = UserManager.GetUserId(User);
+    bool CanReveal(Bid b) => revealAll || revealIds.Contains(b.BidderId);
+}
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+                    <div>
+                        <h5 class="fw-bold mb-1">@Model.Title</h5>
+                        <div class="muted-label">
+                            @Model.Crop?.Name · @Display.Quality(Model.Quality) · @Display.AuctionType(Model.Type)
+                        </div>
+                    </div>
+                    <span class="badge bg-@Display.AuctionStatusCss(Model.Status) fs-6">@Display.AuctionStatus(Model.Status)</span>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-md-3">
+                        <div class="muted-label">الكمية</div>
+                        <div class="fw-bold rtl-num">@Model.Quantity.ToString("N0") @Model.DisplayUnit</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="muted-label">سعر الافتتاح</div>
+                        <div class="fw-bold rtl-num">@Model.StartPrice.ToString("N2")</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="muted-label">السعر الحالي</div>
+                        <div class="price-tag rtl-num">@Model.CurrentPrice.ToString("N2")</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="muted-label">القيمة التقديرية</div>
+                        <div class="fw-bold rtl-num">@Model.EstimatedValue.ToString("N2")</div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                {
+                    <div class="mb-3">
+                        <div class="muted-label mb-1">الوصف والمواصفات</div>
+                        <p class="mb-0">@Model.Description</p>
+                    </div>
+                }
+
+                <div class="row g-3 small border-top pt-3">
+                    <div class="col-md-4">
+                        <div class="muted-label">موقع الاستلام</div>
+                        <div>@(Model.PickupLocation ?? "—")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="muted-label">نافذة المزايدة</div>
+                        <div class="rtl-num">@Model.StartDate.ToString("yyyy/MM/dd") → @Model.EndDate.ToString("yyyy/MM/dd")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="muted-label">تاريخ الحصاد المتوقع</div>
+                        <div class="rtl-num">@(Model.ExpectedHarvestDate?.ToString("yyyy/MM/dd") ?? "—")</div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="muted-label">مسؤولية اللوجستيات</div>
+                        <div>@Display.Logistics(Model.Logistics)
+                            <span class="text-muted">— المنصة توثّق البند ولا تنفّذ النقل.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>المزايدات (@bids.Count)</span>
+                @if (canAward && Model.Status == AuctionStatus.Active && bids.Any())
+                {
+                    <span class="small text-muted">اختر العرض الفائز بالسعر والترتيب — تُكشف الهوية عند الترسية</span>
+                }
+            </div>
+            @if (!revealAll && bids.Any())
+            {
+                <div class="px-3 pt-2">
+                    <div class="alert alert-light border small mb-0 d-flex align-items-center gap-2 py-2">
+                        @Icons.Render("lock", 15)
+                        هويات المزايدين محجوبة للحفاظ على سرية المزاد. تُكشف الهوية للطرفين تلقائياً عند الترسية.
+                    </div>
+                </div>
+            }
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead>
+                        <tr><th>#</th><th>المزايد</th><th>سعر الوحدة</th><th>القيمة الكلية</th><th>الوقت</th><th>الحالة</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    @if (!bids.Any())
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-4">لا توجد مزايدات بعد.</td></tr>
+                    }
+                    @{ var rank = 1; }
+                    @foreach (var b in bids)
+                    {
+                        <tr class="@(rank == 1 ? "table-success" : "")">
+                            <td>@rank</td>
+                            <td>
+                                @if (CanReveal(b))
+                                {
+                                    <div class="fw-semibold small">
+                                        @b.Bidder?.FullName
+                                        @if (b.BidderId == myUid) { <span class="badge bg-light ms-1">أنت</span> }
+                                    </div>
+                                    <div class="muted-label">@Display.UserType(b.Bidder?.UserType ?? UserType.Company)</div>
+                                }
+                                else
+                                {
+                                    <div class="fw-semibold small d-flex align-items-center gap-1">
+                                        @Icons.Render("lock", 13)
+                                        مزايد @(bidderAlias.TryGetValue(b.BidderId, out var n) ? n.ToString() : "—")
+                                    </div>
+                                    <div class="muted-label">هوية محجوبة</div>
+                                }
+                            </td>
+                            <td class="rtl-num fw-bold">@b.UnitPrice.ToString("N2")</td>
+                            <td class="rtl-num">@((b.UnitPrice * Model.Quantity).ToString("N2"))</td>
+                            <td class="rtl-num small">@b.CreatedAt.ToString("MM/dd HH:mm")</td>
+                            <td><span class="badge bg-secondary">@Display.BidStatus(b.Status)</span></td>
+                            <td>
+                                @if (canAward && Model.Status == AuctionStatus.Active)
+                                {
+                                    <form asp-action="AcceptBid" method="post" class="d-inline"
+                                          onsubmit="return confirm('تأكيد الترسية على هذه المزايدة؟ سيتم توليد عقد رقمي.');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="auctionId" value="@Model.Id" />
+                                        <input type="hidden" name="bidId" value="@b.Id" />
+                                        <button class="btn btn-sm btn-green">ترسية</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                        rank++;
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        @* بطاقة "أطراف المزاد" (هوية المزارع والوسيط) تظهر للإدارة فقط —
+           سرية كاملة للأطراف؛ يراها غير الأدمن كإشعار بأن الهوية محجوبة. *@
+        @if (User.IsInRole(Roles.Admin))
+        {
+            <div class="card mb-3">
+                <div class="card-header">أطراف المزاد</div>
+                <div class="card-body small">
+                    <div class="mb-3">
+                        <div class="muted-label">المزارع</div>
+                        <div class="fw-semibold">@Model.Farmer?.FullName</div>
+                        <div class="text-muted">
+                            @Model.Farmer?.Region
+                            @if (Model.Farmer is { RatingCount: > 0 })
+                            {
+                                <span class="text-warning">@Icons.Render("star", 13) @Model.Farmer.RatingAverage.ToString("N1")</span>
+                            }
+                        </div>
+                    </div>
+                    <div>
+                        <div class="muted-label">الوسيط المشرف</div>
+                        @if (Model.Broker is not null)
+                        {
+                            <div class="fw-semibold">@Model.Broker.FullName</div>
+                            <div class="text-muted">@Model.Broker.Region</div>
+                        }
+                        else
+                        {
+                            <div class="text-warning">لم يُسند وسيط بعد</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card mb-3">
+                <div class="card-body small text-muted d-flex align-items-center gap-2">
+                    @Icons.Render("lock", 16)
+                    هويات أطراف المزاد محجوبة للحفاظ على سرية التداول. تُكشف للطرفين عند الترسية.
+                </div>
+            </div>
+        }
+
+        <div class="card mb-3">
+            <div class="card-header">الإجراءات</div>
+            <div class="card-body d-grid gap-2">
+                @if (canBid && Model.IsLive && !isOwner)
+                {
+                    <a class="btn btn-brand" asp-action="Bid" asp-route-id="@Model.Id">تقديم مزايدة</a>
+                }
+                else if (Model.Status == AuctionStatus.Active && User.Identity?.IsAuthenticated != true)
+                {
+                    <a class="btn btn-brand" asp-controller="Account" asp-action="Login">سجّل الدخول للمزايدة</a>
+                }
+
+                @* ── تدقيق الإدارة: تعديل + اعتماد + رفض ── *@
+                @if (Model.Status == AuctionStatus.Pending && User.IsInRole(Roles.Admin))
+                {
+                    <a class="btn btn-outline-secondary" asp-action="Edit" asp-route-id="@Model.Id">
+                        @Icons.Render("note", 16) تعديل تفاصيل المزاد
+                    </a>
+                    <form asp-action="Approve" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button class="btn btn-green w-100">@Icons.Render("check-circle", 16) اعتماد وفتح للمزايدة</button>
+                    </form>
+                    <button class="btn btn-outline-danger w-100" data-bs-toggle="collapse" data-bs-target="#rejectForm">رفض المزاد</button>
+                    <div class="collapse" id="rejectForm">
+                        <form asp-action="Reject" method="post" class="mt-1">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input name="reason" class="form-control form-control-sm mb-2" placeholder="سبب الرفض (يظهر للمزارع)" />
+                            <button class="btn btn-sm btn-danger w-100">تأكيد الرفض</button>
+                        </form>
+                    </div>
+                }
+
+                @* ── الوسيط يتبنّى الإشراف (يبقى بانتظار الإدارة) ── *@
+                @if (Model.Status == AuctionStatus.Pending && User.IsInRole(Roles.Broker) && string.IsNullOrEmpty(Model.BrokerId))
+                {
+                    <form asp-action="Adopt" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button class="btn btn-green w-100">تبنّي الإشراف على المزاد</button>
+                    </form>
+                    <div class="small text-muted">
+                        تصبح الوسيط المشرف، ويبقى المزاد بانتظار اعتماد الإدارة قبل فتحه للمزايدة.
+                    </div>
+                }
+
+                @if (Model.Status == AuctionStatus.Pending && isBroker)
+                {
+                    <div class="alert alert-light border small mb-0">
+                        أنت الوسيط المشرف على هذا المزاد. بانتظار تدقيق واعتماد الإدارة.
+                    </div>
+                }
+
+                @if ((isOwner || isBroker || User.IsInRole(Roles.Admin)) && Model.Status != AuctionStatus.Closed && Model.Status != AuctionStatus.Cancelled)
+                {
+                    <form asp-action="Cancel" method="post" onsubmit="return confirm('تأكيد إلغاء المزاد؟');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button class="btn btn-outline-danger w-100">إلغاء المزاد</button>
+                    </form>
+                }
+
+                <a class="btn btn-outline-secondary" asp-action="Index">العودة للسوق</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body small text-muted">
+                <strong class="d-block text-dark mb-1">كيف تتم الترسية؟</strong>
+                عند اختيار المزايدة الفائزة يولّد النظام عقداً رقمياً ببنود محددة، ويُطلب توقيع الطرفين،
+                ثم يُحتجز المبلغ في حساب ضمان إلكتروني لا يُحرَّر إلا بعد تأكيد الاستلام والمطابقة.
+            </div>
+        </div>
+    </div>
+</div>

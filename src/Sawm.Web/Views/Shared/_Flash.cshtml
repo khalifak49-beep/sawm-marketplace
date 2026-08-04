@@ -1,0 +1,16 @@
+@if (TempData["Success"] is string ok)
+{
+    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2" role="status">
+        @Icons.Render("check-circle", 18)
+        <span class="flex-grow-1">@ok</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+    </div>
+}
+@if (TempData["Error"] is string err)
+{
+    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
+        @Icons.Render("alert", 18)
+        <span class="flex-grow-1">@err</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+    </div>
+}

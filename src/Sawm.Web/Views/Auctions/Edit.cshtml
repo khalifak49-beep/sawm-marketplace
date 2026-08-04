@@ -1,0 +1,150 @@
+@model Auction
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = "تدقيق وتعديل المزاد";
+    var crops = ViewBag.Crops as List<SelectListItem> ?? new();
+    var brokers = ViewBag.Brokers as List<SelectListItem> ?? new();
+    var farmerName = ViewBag.FarmerName as string ?? "—";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">
+                @Icons.Render("chart", 17) تدقيق المزاد وتعديل تفاصيله
+                <span class="badge bg-@Display.AuctionStatusCss(Model.Status) ms-auto">@Display.AuctionStatus(Model.Status)</span>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-light border small d-flex align-items-center gap-2">
+                    @Icons.Render("user", 15) المزارع صاحب المحصول: <strong>@farmerName</strong>
+                    <span class="text-muted">— لا يمكن تغييره من هنا.</span>
+                </div>
+
+                <form asp-action="Edit" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="FarmerId" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label asp-for="Title" class="form-label required"></label>
+                            <input asp-for="Title" class="form-control" />
+                            <span asp-validation-for="Title" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="CropId" class="form-label required"></label>
+                            <select asp-for="CropId" class="form-select" asp-items="crops">
+                                <option value="">— اختر المحصول —</option>
+                            </select>
+                            <span asp-validation-for="CropId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">الوسيط المشرف</label>
+                            <select asp-for="BrokerId" class="form-select" asp-items="brokers">
+                                <option value="">— بلا وسيط —</option>
+                            </select>
+                            <div class="form-text">يمكنك إسناد أو تغيير الوسيط المشرف.</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Quantity" class="form-label required">الكمية</label>
+                            <div class="input-group">
+                                <input asp-for="Quantity" class="form-control" type="number" step="0.01" />
+                                <span class="input-group-text">@Model.DisplayUnit</span>
+                            </div>
+                            <span asp-validation-for="Quantity" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Quality" class="form-label"></label>
+                            <select asp-for="Quality" class="form-select">
+                                <option value="1">ممتاز</option>
+                                <option value="2">درجة أولى</option>
+                                <option value="3">درجة ثانية</option>
+                                <option value="4">درجة ثالثة</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="StartPrice" class="form-label required">سعر الافتتاح</label>
+                            <input asp-for="StartPrice" class="form-control" type="number" step="0.01" />
+                            <span asp-validation-for="StartPrice" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="MinIncrement" class="form-label"></label>
+                            <input asp-for="MinIncrement" class="form-control" type="number" step="0.01" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Type" class="form-label"></label>
+                            <select asp-for="Type" class="form-select" id="auctionType">
+                                <option value="1">لحظي</option>
+                                <option value="2">مستقبلي</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="StartDate" class="form-label"></label>
+                            <input asp-for="StartDate" class="form-control" type="date" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="EndDate" class="form-label required"></label>
+                            <input asp-for="EndDate" class="form-control" type="date" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="EndDate" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4" id="harvestWrap">
+                            <label asp-for="ExpectedHarvestDate" class="form-label"></label>
+                            <input asp-for="ExpectedHarvestDate" class="form-control" type="date"
+                                   value="@(Model.ExpectedHarvestDate?.ToString("yyyy-MM-dd"))" />
+                            <span asp-validation-for="ExpectedHarvestDate" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="PickupLocation" class="form-label"></label>
+                            <input asp-for="PickupLocation" class="form-control" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Logistics" class="form-label"></label>
+                            <select asp-for="Logistics" class="form-select">
+                                <option value="1">على البائع (المزارع)</option>
+                                <option value="2">على المشتري</option>
+                                <option value="3">ينظمها الوسيط</option>
+                                <option value="4">مزود خدمة خارجي</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4 flex-wrap">
+                        <button type="submit" class="btn btn-green px-4">@Icons.Render("check", 16) حفظ التعديلات</button>
+                        <a class="btn btn-outline-secondary" asp-action="Details" asp-route-id="@Model.Id">رجوع لصفحة التفاصيل</a>
+                    </div>
+                    <div class="form-text mt-2">بعد حفظ التعديلات، اعتمد المزاد أو ارفضه من صفحة التفاصيل أو طابور اعتماد المزادات.</div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function toggleHarvest() {
+            var t = document.getElementById('auctionType').value;
+            document.getElementById('harvestWrap').style.display = (t === '2') ? '' : 'none';
+        }
+        document.getElementById('auctionType').addEventListener('change', toggleHarvest);
+        toggleHarvest();
+    </script>
+}

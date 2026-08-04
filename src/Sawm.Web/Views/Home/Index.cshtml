@@ -1,0 +1,277 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "لوحة التحكم";
+    ViewData["Subtitle"] = $"مرحباً، {Model.FullName}";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="role-chip">
+            @Icons.Render(Icons.ForUserType(Model.UserType), 14) @Model.RoleLabel
+        </span>
+        @if (Model.RatingAverage > 0)
+        {
+            <span class="role-chip rating-chip">
+                @Icons.Render("star", 14) <span class="rtl-num">@Model.RatingAverage.ToString("N1")</span>
+            </span>
+        }
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        @if (Model.UserType is UserType.Farmer or UserType.Broker)
+        {
+            <a class="btn btn-brand" asp-controller="Auctions" asp-action="Create">
+                @Icons.Render("plus", 16) إنشاء مزاد
+            </a>
+        }
+        @if (Model.UserType == UserType.Company)
+        {
+            <a class="btn btn-brand" asp-controller="Tenders" asp-action="Create">
+                @Icons.Render("plus", 16) طرح مناقصة
+            </a>
+        }
+        @if (Model.UserType == UserType.Broker)
+        {
+            <a class="btn btn-green" asp-controller="Broker" asp-action="Workspace">
+                @Icons.Render("handshake", 16) مساحة الوسيط
+            </a>
+        }
+    </div>
+</div>
+
+<!-- ── المؤشرات ─────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <span class="stat-ico">@Icons.Render("gavel", 20)</span>
+            <div>
+                <div class="stat-value rtl-num">@Model.ActiveAuctions</div>
+                <div class="stat-label">مزادات نشطة في السوق</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <span class="stat-ico">@Icons.Render("clipboard", 20)</span>
+            <div>
+                <div class="stat-value rtl-num">@Model.OpenTenders</div>
+                <div class="stat-label">مناقصات مفتوحة</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <span class="stat-ico">@Icons.Render("file-text", 20)</span>
+            <div>
+                <div class="stat-value rtl-num">@Model.ActiveContracts</div>
+                <div class="stat-label">عقودي الجارية</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <span class="stat-ico gold">@Icons.Render("wallet", 20)</span>
+            <div>
+                <div class="stat-value rtl-num">@Model.TotalTradedValue.ToString("N0")</div>
+                <div class="stat-label">إجمالي المتداول (ر.ع)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.PendingEscrow > 0)
+{
+    <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span class="d-flex align-items-center gap-2">
+            @Icons.Render("lock", 17)
+            مبالغ محتجزة حالياً في حسابات الضمان:
+            <strong class="rtl-num">@Model.PendingEscrow.ToString("N2")</strong> ر.ع
+        </span>
+        <a class="btn btn-sm btn-outline-secondary" asp-controller="Contracts" asp-action="Index">متابعة العقود</a>
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-xl-8">
+        <!-- المزادات -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="d-flex align-items-center gap-2">@Icons.Render("gavel", 17) أحدث المزادات النشطة</span>
+                <a class="btn btn-sm btn-outline-secondary" asp-controller="Auctions" asp-action="Index">الكل</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr><th>المزاد</th><th>المزارع</th><th>الكمية</th><th>السعر الحالي</th><th>يغلق في</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    @if (!Model.RecentAuctions.Any())
+                    {
+                        <tr><td colspan="6">
+                            <div class="empty-state">
+                                <span class="ico">@Icons.Render("gavel", 22)</span>
+                                لا توجد مزادات نشطة حالياً.
+                            </div>
+                        </td></tr>
+                    }
+                    @foreach (var a in Model.RecentAuctions)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@a.Title</div>
+                                <span class="badge bg-light">@Display.AuctionType(a.Type)</span>
+                            </td>
+                            <td class="small">@a.Farmer?.FullName</td>
+                            <td class="rtl-num small">@a.Quantity.ToString("N0") @a.DisplayUnit</td>
+                            <td class="rtl-num fw-bold" style="color:var(--primary-800)">@a.CurrentPrice.ToString("N2")</td>
+                            <td class="small rtl-num">@a.EndDate.ToString("yyyy/MM/dd")</td>
+                            <td><a class="btn btn-sm btn-outline-success" asp-controller="Auctions" asp-action="Details" asp-route-id="@a.Id">عرض</a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- المناقصات -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="d-flex align-items-center gap-2">@Icons.Render("clipboard", 17) مناقصات مفتوحة</span>
+                <a class="btn btn-sm btn-outline-secondary" asp-controller="Tenders" asp-action="Index">الكل</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr><th>المناقصة</th><th>الجهة</th><th>الكمية</th><th>السقف</th><th>العروض</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                    @if (!Model.RecentTenders.Any())
+                    {
+                        <tr><td colspan="6">
+                            <div class="empty-state">
+                                <span class="ico">@Icons.Render("clipboard", 22)</span>
+                                لا توجد مناقصات مفتوحة.
+                            </div>
+                        </td></tr>
+                    }
+                    @foreach (var t in Model.RecentTenders)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@t.Title</td>
+                            <td class="small">@t.Company?.FullName</td>
+                            <td class="rtl-num small">@t.Quantity.ToString("N0") @t.Crop?.Unit</td>
+                            <td class="rtl-num small">@t.MaxUnitPrice.ToString("N2")</td>
+                            <td><span class="badge bg-secondary rtl-num">@t.Offers.Count</span></td>
+                            <td><a class="btn btn-sm btn-outline-success" asp-controller="Tenders" asp-action="Details" asp-route-id="@t.Id">عرض</a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- العقود -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="d-flex align-items-center gap-2">@Icons.Render("file-text", 17) عقودي الأخيرة</span>
+                <a class="btn btn-sm btn-outline-secondary" asp-controller="Contracts" asp-action="Index">الكل</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>رقم العقد</th><th>المحصول</th><th>القيمة</th><th>الحالة</th><th></th></tr></thead>
+                    <tbody>
+                    @if (!Model.RecentContracts.Any())
+                    {
+                        <tr><td colspan="5">
+                            <div class="empty-state">
+                                <span class="ico">@Icons.Render("file-text", 22)</span>
+                                لا توجد عقود بعد.
+                            </div>
+                        </td></tr>
+                    }
+                    @foreach (var c in Model.RecentContracts)
+                    {
+                        <tr>
+                            <td class="rtl-num small fw-semibold">@c.ContractNumber</td>
+                            <td class="small">@c.Crop?.Name</td>
+                            <td class="rtl-num fw-semibold">@c.TotalValue.ToString("N2")</td>
+                            <td><span class="badge bg-@Display.ContractStatusCss(c.Status)">@Display.ContractStatus(c.Status)</span></td>
+                            <td><a class="btn btn-sm btn-outline-success" asp-controller="Contracts" asp-action="Details" asp-route-id="@c.Id">عرض</a></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <!-- مؤشر الأسعار -->
+        <div class="card mb-3">
+            <div class="card-header d-flex align-items-center gap-2">
+                @Icons.Render("trending-up", 17) مؤشر أسعار السوق
+            </div>
+            <ul class="list-group list-group-flush">
+                @foreach (var p in Model.MarketPrices)
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold small">@p.CropName</div>
+                            <div class="muted-label">
+                                <span class="rtl-num">@p.DealsCount</span> صفقة ·
+                                مرجعي <span class="rtl-num">@p.ReferencePrice.ToString("N2")</span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <div class="rtl-num fw-bold">@p.LatestTradedPrice.ToString("N2")</div>
+                            @if (p.ChangePercent != 0)
+                            {
+                                var up = p.ChangePercent > 0;
+                                <small class="d-flex align-items-center gap-1 justify-content-end"
+                                       style="color:@(up ? "var(--primary-700)" : "var(--destructive)")">
+                                    @Icons.Render(up ? "trending-up" : "trending-down", 13)
+                                    <span class="rtl-num">@Math.Abs(p.ChangePercent).ToString("N1")%</span>
+                                </small>
+                            }
+                        </div>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <!-- الإشعارات -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="d-flex align-items-center gap-2">@Icons.Render("bell", 17) الإشعارات</span>
+                @if (Model.UnreadNotifications > 0)
+                {
+                    <span class="badge bg-danger rtl-num">@Model.UnreadNotifications جديد</span>
+                }
+            </div>
+            <ul class="list-group list-group-flush">
+                @if (!Model.LatestNotifications.Any())
+                {
+                    <li class="list-group-item">
+                        <div class="empty-state">
+                            <span class="ico">@Icons.Render("bell", 22)</span>
+                            لا توجد إشعارات.
+                        </div>
+                    </li>
+                }
+                @foreach (var n in Model.LatestNotifications)
+                {
+                    <li class="list-group-item @(n.IsRead ? "" : "unread")">
+                        <a class="text-decoration-none d-block" style="color:inherit"
+                           asp-controller="Notifications" asp-action="Open" asp-route-id="@n.Id">
+                            <div class="fw-semibold small">@n.Title</div>
+                            <div class="muted-label">@n.Body</div>
+                            <div class="muted-label rtl-num mt-1">@n.CreatedAt.ToString("yyyy/MM/dd HH:mm")</div>
+                        </a>
+                    </li>
+                }
+            </ul>
+            <div class="card-footer text-center py-2">
+                <a class="small" asp-controller="Notifications" asp-action="Index">عرض كل الإشعارات</a>
+            </div>
+        </div>
+    </div>
+</div>

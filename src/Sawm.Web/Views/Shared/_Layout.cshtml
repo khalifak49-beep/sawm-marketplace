@@ -1,0 +1,270 @@
+@using Microsoft.EntityFrameworkCore
+@using Sawm.Web.Data
+@inject SawmDbContext Db
+@inject UserManager<ApplicationUser> UserManager
+@{
+    var uid = UserManager.GetUserId(User);
+    var signedIn = User.Identity?.IsAuthenticated == true && uid != null;
+
+    var unread = 0;
+    ApplicationUser? me = null;
+    var liveAuctions = 0;
+    var openTenders = 0;
+    var isParentCompany = false;   // شركة رئيسية (ليست فرعاً) → تدير الفروع
+    var branchApprovals = 0;       // مزايدات فروع تنتظر موافقة الرئيسية
+    var pendingAuctions = 0;       // مزادات تنتظر اعتماد الإدارة
+
+    if (signedIn)
+    {
+        unread = await Db.Notifications.CountAsync(n => n.UserId == uid && !n.IsRead);
+        me = await Db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == uid);
+        liveAuctions = await Db.Auctions.CountAsync(a => a.Status == AuctionStatus.Active && a.EndDate > DateTime.Now);
+        openTenders = await Db.Tenders.CountAsync(t => t.Status == TenderStatus.Open && t.ClosingDate > DateTime.Now);
+
+        if (User.IsInRole(Roles.Admin))
+            pendingAuctions = await Db.Auctions.CountAsync(a => a.Status == AuctionStatus.Pending);
+
+        if (me?.UserType == UserType.Company)
+        {
+            var cp = await Db.CompanyProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == uid);
+            isParentCompany = cp is { ParentCompanyId: null };
+            if (isParentCompany)
+                branchApprovals = await Db.Bids.CountAsync(b => b.Status == BidStatus.PendingApproval
+                    && Db.CompanyProfiles.Any(p => p.UserId == b.BidderId && p.ParentCompanyId == uid));
+        }
+    }
+
+    var ctl = (ViewContext.RouteData.Values["controller"] as string) ?? "";
+    var act = (ViewContext.RouteData.Values["action"] as string) ?? "";
+    string On(string c) => string.Equals(ctl, c, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    string OnAction(string c, string a) =>
+        string.Equals(ctl, c, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(act, a, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#15803D" />
+    <title>@ViewData["Title"] — منصة ساوم</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <noscript>
+        <!-- بدون جافاسكربت لا تُرفع ستارة الانتقال — أخفِها كي لا تحجب الصفحة -->
+        <style>#pageFade { display: none !important; }</style>
+    </noscript>
+</head>
+<body>
+<!-- ستارة الانتقال بين الشاشات — تُرفع فور تحميل الصفحة -->
+<div id="pageFade" aria-hidden="true"><span class="pf-mark">س</span></div>
+
+@if (signedIn)
+{
+    <div class="app">
+        <!-- ── الشريط الجانبي ──────────────────────────────── -->
+        <aside class="sidebar" id="sidebar">
+            <a class="brand" asp-controller="Home" asp-action="Index">
+                <span class="brand-mark">س</span>
+                <span class="brand-text"><b>ساوم</b><span>سوق المحاصيل الذكي</span></span>
+            </a>
+
+            <nav aria-label="التنقل الرئيسي">
+                <div class="nav-section">المنصة</div>
+                <a class="nav-link-s @OnAction("Home","Index")" asp-controller="Home" asp-action="Index">
+                    @Icons.Render("dashboard") <span>لوحة التحكم</span>
+                </a>
+                <a class="nav-link-s @On("Auctions")" asp-controller="Auctions" asp-action="Index">
+                    @Icons.Render("gavel") <span>المزادات</span>
+                    @if (liveAuctions > 0) { <span class="count rtl-num">@liveAuctions</span> }
+                </a>
+                <a class="nav-link-s @On("Tenders")" asp-controller="Tenders" asp-action="Index">
+                    @Icons.Render("clipboard") <span>المناقصات</span>
+                    @if (openTenders > 0) { <span class="count rtl-num">@openTenders</span> }
+                </a>
+                <a class="nav-link-s @On("Contracts")" asp-controller="Contracts" asp-action="Index">
+                    @Icons.Render("file-text") <span>العقود</span>
+                </a>
+                <a class="nav-link-s @On("Logistics")" asp-controller="Logistics" asp-action="Index">
+                    @Icons.Render("truck") <span>اللوجستيات</span>
+                </a>
+
+                @if (isParentCompany)
+                {
+                    <div class="nav-section">إدارة الشركة</div>
+                    <a class="nav-link-s @OnAction("Company","Branches")" asp-controller="Company" asp-action="Branches">
+                        @Icons.Render("building") <span>الفروع</span>
+                    </a>
+                    <a class="nav-link-s @OnAction("Company","Activity")" asp-controller="Company" asp-action="Activity">
+                        @Icons.Render("gavel") <span>نشاط الفروع</span>
+                        @if (branchApprovals > 0) { <span class="count rtl-num">@branchApprovals</span> }
+                    </a>
+                }
+
+                @if (User.IsInRole(Roles.Broker) || User.IsInRole(Roles.Admin))
+                {
+                    <div class="nav-section">مساحة الوسيط</div>
+                    <a class="nav-link-s @OnAction("Broker","Workspace")" asp-controller="Broker" asp-action="Workspace">
+                        @Icons.Render("handshake") <span>لوحة الوسيط</span>
+                    </a>
+                    <a class="nav-link-s @OnAction("Broker","Farmers")" asp-controller="Broker" asp-action="Farmers">
+                        @Icons.Render("wheat") <span>دليل المزارعين</span>
+                    </a>
+                    <a class="nav-link-s @OnAction("Broker","Companies")" asp-controller="Broker" asp-action="Companies">
+                        @Icons.Render("building") <span>دليل الشركات</span>
+                    </a>
+                }
+
+                @if (User.IsInRole(Roles.Admin))
+                {
+                    <div class="nav-section">الإدارة</div>
+                    <a class="nav-link-s @OnAction("Admin","Index")" asp-controller="Admin" asp-action="Index">
+                        @Icons.Render("chart") <span>لوحة الإدارة</span>
+                    </a>
+                    <a class="nav-link-s @OnAction("Admin","PendingAuctions")" asp-controller="Admin" asp-action="PendingAuctions">
+                        @Icons.Render("gavel") <span>اعتماد المزادات</span>
+                        @if (pendingAuctions > 0) { <span class="count rtl-num">@pendingAuctions</span> }
+                    </a>
+                    <a class="nav-link-s @OnAction("Admin","Users")" asp-controller="Admin" asp-action="Users">
+                        @Icons.Render("users") <span>المستخدمون</span>
+                    </a>
+                    <a class="nav-link-s @OnAction("Admin","Crops")" asp-controller="Admin" asp-action="Crops">
+                        @Icons.Render("seedling") <span>المحاصيل</span>
+                    </a>
+                    <a class="nav-link-s @OnAction("Admin","Reports")" asp-controller="Admin" asp-action="Reports">
+                        @Icons.Render("trending-up") <span>التقارير</span>
+                    </a>
+                }
+            </nav>
+
+            <div class="sidebar-foot">
+                المنصة تربط وتوثّق وتضمن رقمياً فقط — ولا تتحمل مسؤولية النقل أو التخزين أو التأمين.
+            </div>
+        </aside>
+
+        <div class="main-col">
+            <!-- ── الشريط العلوي ────────────────────────────── -->
+            <header class="topbar">
+                <button class="icon-btn sidebar-toggle d-lg-none" id="navToggle"
+                        aria-label="فتح قائمة التنقل" aria-expanded="false" aria-controls="sidebar">
+                    @Icons.Render("menu")
+                </button>
+
+                <div class="me-auto">
+                    <h1 class="page-title">@ViewData["Title"]</h1>
+                    @if (ViewData["Subtitle"] is string sub)
+                    {
+                        <div class="page-sub">@sub</div>
+                    }
+                </div>
+
+                <a class="icon-btn" asp-controller="Notifications" asp-action="Index"
+                   aria-label="الإشعارات@(unread > 0 ? $" — {unread} غير مقروء" : "")">
+                    @Icons.Render("bell")
+                    @if (unread > 0)
+                    {
+                        <span class="notif-dot rtl-num">@unread</span>
+                    }
+                </a>
+
+                <div class="dropdown">
+                    <button class="btn btn-sm d-flex align-items-center gap-2 border-0" data-bs-toggle="dropdown"
+                            aria-expanded="false" aria-label="قائمة الحساب">
+                        <span class="avatar">@me?.FullName.Trim().FirstOrDefault()</span>
+                        <span class="d-none d-md-block text-end lh-sm">
+                            <span class="d-block fw-semibold" style="font-size:.85rem">@me?.FullName</span>
+                            <span class="muted-label">@Display.UserType(me?.UserType ?? UserType.Farmer)</span>
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-start shadow">
+                        @if (me is { RatingCount: > 0 })
+                        {
+                            <li class="dropdown-header d-flex align-items-center gap-1">
+                                @Icons.Render("star", 14) <span class="rtl-num">@me.RatingAverage.ToString("N1")</span>
+                                <span class="muted-label">(@me.RatingCount تقييم)</span>
+                            </li>
+                            <li><hr class="dropdown-divider" /></li>
+                        }
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center gap-2" asp-controller="Account" asp-action="Profile">
+                                @Icons.Render("user", 16) ملفي الشخصي
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li>
+                            <form asp-controller="Account" asp-action="Logout" method="post" class="px-2 pb-1">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2">
+                                    @Icons.Render("logout", 16) تسجيل الخروج
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </header>
+
+            <main class="content">
+                <partial name="_Flash" />
+                @RenderBody()
+            </main>
+
+            <footer class="footer-note d-flex flex-wrap justify-content-between gap-2">
+                <span>منصة ساوم — نظام بيئي رقمي يربط المزارع بالوسيط والشركة.</span>
+                <span class="rtl-num">© @DateTime.Now.Year</span>
+            </footer>
+        </div>
+    </div>
+}
+else
+{
+    <!-- ── واجهة الزوار ─────────────────────────────────────── -->
+    <nav class="navbar navbar-expand-lg sticky-top" style="background:var(--grad-green)">
+        <div class="container">
+            <a class="brand py-2" asp-controller="Home" asp-action="Index">
+                <span class="brand-mark">س</span>
+                <span class="brand-text"><b>ساوم</b><span>سوق المحاصيل الذكي</span></span>
+            </a>
+            <button class="navbar-toggler border-light" type="button" data-bs-toggle="collapse" data-bs-target="#guestNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="guestNav">
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+                    <li class="nav-item">
+                        <a class="nav-link on-green-muted" asp-controller="Auctions" asp-action="Index">المزادات</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link on-green-muted" asp-controller="Tenders" asp-action="Index">المناقصات</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" asp-controller="Account" asp-action="Login">دخول</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-brand btn-sm" asp-controller="Account" asp-action="Register">إنشاء حساب</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-4">
+        <partial name="_Flash" />
+        @RenderBody()
+    </main>
+
+    <footer class="footer-note mt-5">
+        <div class="container d-flex flex-wrap justify-content-between gap-2">
+            <span>منصة ساوم — تربط وتوثّق وتضمن رقمياً؛ ولا تتحمل مسؤولية النقل أو التخزين أو التأمين.</span>
+            <span class="rtl-num">© @DateTime.Now.Year</span>
+        </div>
+    </footer>
+}
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/lib/gsap/gsap.min.js"></script>
+<script src="~/lib/gsap/ScrollTrigger.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+<script src="~/js/motion.js" asp-append-version="true"></script>
+</body>
+</html>

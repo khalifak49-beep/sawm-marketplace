@@ -1,0 +1,71 @@
+@model LogisticsRequest
+@{
+    ViewData["Title"] = "نشر طلب نقل";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                نشر طلب نقل أو تخزين
+                @if (ViewBag.ContractNumber is string cn)
+                {
+                    <span class="badge bg-light text-dark ms-2 rtl-num">مرتبط بالعقد @cn</span>
+                }
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ContractId" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FromLocation" class="form-label required"></label>
+                            <input asp-for="FromLocation" class="form-control" placeholder="مثال: صحار — وادي حبيب" />
+                            <span asp-validation-for="FromLocation" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ToLocation" class="form-label required"></label>
+                            <input asp-for="ToLocation" class="form-control" placeholder="مثال: مستودع مسقط المركزي" />
+                            <span asp-validation-for="ToLocation" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="WeightKg" class="form-label"></label>
+                            <input asp-for="WeightKg" class="form-control" type="number" step="0.01" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="PickupDate" class="form-label"></label>
+                            <input asp-for="PickupDate" class="form-control" type="date" value="@Model.PickupDate.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input asp-for="NeedsRefrigeration" class="form-check-input" />
+                                <label asp-for="NeedsRefrigeration" class="form-check-label"></label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Notes" class="form-label"></label>
+                            <textarea asp-for="Notes" class="form-control" rows="3"
+                                      placeholder="نوع العبوات، متطلبات المناولة، ساعات الاستلام..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning small mt-4 mb-0">
+                        المنصة تتيح هذه القناة للربط والتوثيق فقط. مسؤولية التنفيذ والتأمين تقع على الطرفين
+                        ومزود الخدمة، ولا تضمن ساوم توفّر وسائل الشحن.
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-green px-4">نشر الطلب</button>
+                        <a class="btn btn-outline-secondary" asp-action="Index">إلغاء</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

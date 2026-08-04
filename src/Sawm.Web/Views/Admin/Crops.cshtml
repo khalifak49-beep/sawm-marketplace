@@ -1,0 +1,87 @@
+@model List<Crop>
+@{
+    ViewData["Title"] = "المحاصيل";
+}
+
+<h5 class="fw-bold mb-3">إدارة المحاصيل والأسعار المرجعية</h5>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">إضافة محصول</div>
+            <div class="card-body">
+                <form asp-action="SaveCrop" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="0" />
+                    <div class="mb-2">
+                        <label class="form-label required">اسم المحصول</label>
+                        <input name="name" class="form-control" required />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">التصنيف</label>
+                        <input name="category" class="form-control" list="cats" />
+                        <datalist id="cats">
+                            <option value="خضروات"></option><option value="فواكه"></option>
+                            <option value="تمور"></option><option value="أعلاف"></option>
+                            <option value="حبوب"></option>
+                        </datalist>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">وحدة القياس</label>
+                        <input name="unit" class="form-control" value="كجم" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">السعر المرجعي</label>
+                        <input name="referencePrice" type="number" step="0.01" class="form-control" value="0" />
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="isActive" value="true" checked id="newActive" />
+                        <label class="form-check-label" for="newActive">نشط</label>
+                    </div>
+                    <button class="btn btn-green w-100">إضافة</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">قائمة المحاصيل (@Model.Count)</div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead><tr><th>الاسم</th><th>التصنيف</th><th>الوحدة</th><th>السعر المرجعي</th><th>نشط</th><th>إجراءات</th></tr></thead>
+                    <tbody>
+                    @foreach (var c in Model)
+                    {
+                        @* حقول الصف تشير لنموذج الحفظ بالمعرّف (form=) لتفادي تداخل النماذج مع نموذج الحذف *@
+                        <tr>
+                            <td><input form="cf-@c.Id" name="name" class="form-control form-control-sm" value="@c.Name" /></td>
+                            <td><input form="cf-@c.Id" name="category" class="form-control form-control-sm" value="@c.Category" /></td>
+                            <td style="width:80px"><input form="cf-@c.Id" name="unit" class="form-control form-control-sm" value="@c.Unit" /></td>
+                            <td style="width:110px"><input form="cf-@c.Id" name="referencePrice" type="number" step="0.01" class="form-control form-control-sm" value="@c.ReferencePrice" /></td>
+                            <td style="width:55px" class="text-center">
+                                <input form="cf-@c.Id" class="form-check-input" type="checkbox" name="isActive" value="true" checked="@c.IsActive" />
+                            </td>
+                            <td style="width:150px" class="text-nowrap">
+                                <form id="cf-@c.Id" asp-action="SaveCrop" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@c.Id" />
+                                    <button class="btn btn-sm btn-outline-success">حفظ</button>
+                                </form>
+                                <form asp-action="DeleteCrop" method="post" class="d-inline"
+                                      onsubmit="return confirm('تأكيد حذف هذا المحصول من القائمة؟');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@c.Id" />
+                                    <button class="btn btn-sm btn-outline-danger" title="حذف">
+                                        @Icons.Render("x", 14) حذف
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

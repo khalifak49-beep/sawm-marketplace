@@ -1,0 +1,257 @@
+@model List<Crop>
+@{
+    ViewData["Title"] = "الرئيسية";
+    var stats = ViewBag.Stats as Dictionary<string, int> ?? new();
+    var featured = ViewBag.Featured as List<Auction> ?? new();
+}
+
+<!-- ── البطل: البحث هو نداء العمل ─────────────────────────── -->
+<section class="hero mb-5">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+            <span class="badge bg-light mb-3 d-inline-flex align-items-center gap-1">
+                @Icons.Render("shield-check", 14) عقود موثّقة بضمان مالي مشروط
+            </span>
+            <h1 class="mb-3">من الحقل إلى الشركة — بصفقة موثّقة وسعر عادل</h1>
+            <p class="lead mb-4">
+                منصة تربط <strong>المزارع</strong> بـ<strong>الوسيط المعتمد</strong> وبـ<strong>المشتري المؤسسي</strong>:
+                مزادات لحظية ومستقبلية، مناقصات بمطابقة ذكية، وضمان مالي لا يُحرَّر إلا بعد تأكيد الاستلام والمطابقة.
+            </p>
+
+            <form class="hero-search mb-3" asp-controller="Auctions" asp-action="Index" method="get" role="search">
+                <label for="heroQ" class="visually-hidden">ابحث عن محصول</label>
+                <input id="heroQ" name="q" type="search" placeholder="ابحث عن محصول… طماطم، تمور، بطاطس" />
+                <button type="submit" class="btn btn-brand px-4">
+                    @Icons.Render("search", 18) بحث
+                </button>
+            </form>
+
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="muted-label on-green-muted text-nowrap flex-shrink-0">الأكثر بحثاً:</span>
+                @foreach (var c in Model.Take(5))
+                {
+                    <a class="badge bg-light text-decoration-none"
+                       asp-controller="Auctions" asp-action="Index" asp-route-q="@c.Name">@c.Name</a>
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-0" style="background:rgba(255,255,255,.97)">
+                <div class="card-body">
+                    <div class="fw-bold mb-3 d-flex align-items-center gap-2">
+                        @Icons.Render("user", 18) حسابات تجريبية جاهزة
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-2">
+                            <tbody>
+                                <tr><td class="d-flex align-items-center gap-2">@Icons.Render("wheat", 15) مزارع</td><td class="rtl-num small">farmer1@sawm.om</td></tr>
+                                <tr><td class="d-flex align-items-center gap-2">@Icons.Render("handshake", 15) وسيط</td><td class="rtl-num small">broker1@sawm.om</td></tr>
+                                <tr><td class="d-flex align-items-center gap-2">@Icons.Render("building", 15) شركة</td><td class="rtl-num small">company1@sawm.om</td></tr>
+                                <tr><td class="d-flex align-items-center gap-2">@Icons.Render("settings", 15) إدارة</td><td class="rtl-num small">admin@sawm.om</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="muted-label">كلمة المرور الموحدة: <code class="rtl-num">Sawm@@2026</code></div>
+                    <a class="btn btn-green w-100 mt-3" asp-controller="Account" asp-action="Login">تسجيل الدخول</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── مؤشرات الثقة ───────────────────────────────────────── -->
+<section class="row g-3 mb-5 reveal">
+    @foreach (var (key, label, icon) in new[]
+    {
+        ("farmers",  "مزارع مسجّل",     "wheat"),
+        ("brokers",  "وسيط معتمد",      "handshake"),
+        ("companies","شركة مشترية",     "building"),
+        ("auctions", "مزاد نشط الآن",   "gavel")
+    })
+    {
+        <div class="col-6 col-lg-3">
+            <div class="stat-card">
+                <span class="stat-ico">@Icons.Render(icon, 20)</span>
+                <div>
+                    <div class="stat-value rtl-num">@(stats.TryGetValue(key, out var v) ? v : 0)</div>
+                    <div class="stat-label">@label</div>
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+<!-- ── الأطراف الثلاثة ────────────────────────────────────── -->
+<section class="mb-5 reveal">
+    <h2 class="h5 fw-bold mb-1">ثلاثة أطراف… منظومة واحدة</h2>
+    <p class="muted-label mb-3">لكل طرف واجهة وصلاحيات تناسب دوره في دورة الصفقة.</p>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="pillar">
+                <span class="ico">@Icons.Render("wheat", 22)</span>
+                <h3 class="h6 fw-bold">المزارع</h3>
+                <p class="text-muted small mb-0">
+                    ينشر محصوله في مزاد لحظي أو مستقبلي قبل الحصاد، يستقبل المزايدات،
+                    ويحصل على يقين سعري مبكر يغطي تكاليف المدخلات — مع سجل موثوقية يرتفع مع كل صفقة ناجحة.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="pillar">
+                <span class="ico">@Icons.Render("handshake", 22)</span>
+                <h3 class="h6 fw-bold">الوسيط</h3>
+                <p class="text-muted small mb-0">
+                    يعتمد المزادات ويشرف عليها، يمثّل المزارعين في المناقصات المؤسسية،
+                    ينفّذ التحقق الميداني من الجودة، وتُحتسب عمولته تلقائياً عند إتمام العقد.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="pillar">
+                <span class="ico">@Icons.Render("building", 22)</span>
+                <h3 class="h6 fw-bold">الشركة المشترية</h3>
+                <p class="text-muted small mb-0">
+                    تطرح مناقصات بمواصفات وكميات وجداول تسليم دقيقة، ويقيّم محرك المطابقة العروض آلياً
+                    بالسعر والتغطية وسجل المورد وموعد التسليم — لتوريد مستقر قابل للتتبع.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── مزادات مختارة ─────────────────────────────────────── -->
+@if (featured.Any())
+{
+    <section class="mb-5 reveal">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 class="h5 fw-bold mb-1">مزادات نشطة الآن</h2>
+                <p class="muted-label mb-0">تصفّح دون تسجيل — والمزايدة تتطلب حساب شركة أو وسيط.</p>
+            </div>
+            <a class="btn btn-sm btn-outline-success" asp-controller="Auctions" asp-action="Index">عرض الكل</a>
+        </div>
+        <div class="row g-3">
+            @foreach (var a in featured)
+            {
+                <div class="col-md-6 col-xl-4">
+                    <div class="card auction-card flow-border h-100">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <span class="badge bg-success">نشط</span>
+                                <span class="badge bg-light">@Display.AuctionType(a.Type)</span>
+                            </div>
+                            <h3 class="h6 fw-bold mb-1">@a.Title</h3>
+                            <div class="muted-label mb-3 d-flex align-items-center gap-1">
+                                @Icons.Render("map-pin", 13) @a.Farmer?.Region · @a.Crop?.Name
+                            </div>
+                            <div class="d-flex justify-content-between align-items-end mt-auto">
+                                <div>
+                                    <div class="muted-label">السعر الحالي</div>
+                                    <div class="price-tag rtl-num">@a.CurrentPrice.ToString("N2")</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="muted-label">الكمية</div>
+                                    <div class="fw-semibold rtl-num">@a.Quantity.ToString("N0") @a.DisplayUnit</div>
+                                </div>
+                            </div>
+                            <a class="btn btn-sm btn-outline-success mt-3"
+                               asp-controller="Auctions" asp-action="Details" asp-route-id="@a.Id">
+                                عرض التفاصيل
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+<!-- ── الثقة والأمان ─────────────────────────────────────── -->
+<section class="mb-5 reveal">
+    <div class="card">
+        <div class="card-header d-flex align-items-center gap-2">
+            @Icons.Render("shield-check", 18) الثقة والأمان — كيف تُحمى صفقتك
+        </div>
+        <div class="card-body">
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="trust-item">
+                        <span class="ico">@Icons.Render("lock", 17)</span>
+                        <div>
+                            <div class="fw-semibold small">ضمان مالي مشروط</div>
+                            <p class="muted-label mb-0">يُحتجز المبلغ إلكترونياً بمجرد توقيع الطرفين، ولا يُحرَّر إلا بعد تأكيد الاستلام والمطابقة.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="trust-item">
+                        <span class="ico">@Icons.Render("check-circle", 17)</span>
+                        <div>
+                            <div class="fw-semibold small">تحقق ميداني من الجودة</div>
+                            <p class="muted-label mb-0">زيارة معتمدة قبل التسليم: مطابق، أو خصم متدرج متفق عليه، أو إحالة لتحكيم داخلي سريع.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="trust-item">
+                        <span class="ico">@Icons.Render("file-text", 17)</span>
+                        <div>
+                            <div class="fw-semibold small">عقد رقمي بسجل تدقيق</div>
+                            <p class="muted-label mb-0">كل خطوة مُوثّقة بالوقت والفاعل — من الترسية حتى تحرير الدفع.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="trust-item">
+                        <span class="ico">@Icons.Render("star", 17)</span>
+                        <div>
+                            <div class="fw-semibold small">سجل موثوقية متراكم</div>
+                            <p class="muted-label mb-0">تقييم متبادل بعد كل عقد يؤثر على الظهور وشروط العقود القادمة.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-light mt-4 mb-0 d-flex gap-2 align-items-start">
+                @Icons.Render("truck", 17)
+                <div>
+                    <strong>حدود المسؤولية اللوجستية:</strong>
+                    يُحدَّد الطرف المسؤول عن النقل والتخزين والتأمين في بند صريح داخل العقد منذ الخطوة الأولى.
+                    توفّر المنصة سوقاً لوجستياً مستقلاً لنشر طلبات النقل واستقبال عروض المزودين،
+                    لكنها لا تتدخل في التنفيذ ولا تضمن توفّر وسائل الشحن.
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── دورة الصفقة ───────────────────────────────────────── -->
+<section class="mb-5 reveal">
+    <div class="card">
+        <div class="card-header">دورة الصفقة داخل المنصة</div>
+        <div class="card-body">
+            <ul class="timeline mb-0">
+                <li><strong>التسجيل وبناء الملف الرقمي</strong> <span class="muted-label">— بيانات المزرعة أو الشركة وتوثيق الحساب.</span></li>
+                <li><strong>نشر العرض أو الطلب</strong> <span class="muted-label">— المزارع ينشر مزاداً، والشركة تطرح مناقصة.</span></li>
+                <li><strong>اعتماد الوسيط</strong> <span class="muted-label">— يراجع الوسيط المزاد ويفتحه للمزايدة تحت إشرافه.</span></li>
+                <li><strong>المزايدة والمطابقة الذكية</strong> <span class="muted-label">— ترتيب آلي للعروض بدرجة مطابقة واضحة.</span></li>
+                <li><strong>الترسية والعقد الرقمي</strong> <span class="muted-label">— عقد ببنود محددة وتوقيع رقمي من الطرفين.</span></li>
+                <li><strong>الضمان المالي</strong> <span class="muted-label">— احتجاز المبلغ إلكترونياً قبل بدء التنفيذ.</span></li>
+                <li><strong>التحقق الميداني</strong> <span class="muted-label">— تقرير جودة معتمد قبل التسليم.</span></li>
+                <li><strong>الاستلام وتحرير الدفع</strong> <span class="muted-label">— تحويل الصافي للمزارع بعد خصم العمولات، وتقييم متبادل.</span></li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- ── نداء العمل الختامي ────────────────────────────────── -->
+<section class="card cta-band mb-4 reveal">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3 p-4">
+        <div class="text-white">
+            <h2 class="h5 fw-bold text-white mb-1">اعرض محصولك أو اطرح مناقصتك اليوم</h2>
+            <p class="mb-0 small on-green-muted">التسجيل مجاني، ولا تُحتسب أي عمولة إلا عند إتمام صفقة فعلية.</p>
+        </div>
+        <a class="btn btn-brand btn-lg" asp-controller="Account" asp-action="Register">إنشاء حساب مجاني</a>
+    </div>
+</section>

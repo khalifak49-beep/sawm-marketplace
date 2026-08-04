@@ -1,0 +1,171 @@
+@model RegisterViewModel
+@{
+    ViewData["Title"] = "إنشاء حساب";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-1">إنشاء حساب جديد</h5>
+                <p class="text-muted small mb-4">اختر نوع حسابك لتظهر لك الحقول المناسبة.</p>
+
+                <form asp-action="Register" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+                    <div class="mb-4">
+                        <label class="form-label required">نوع الحساب</label>
+                        <div class="row g-2">
+                            @foreach (var t in new[] { UserType.Farmer, UserType.Broker, UserType.Company })
+                            {
+                                <div class="col-md-4">
+                                    <input type="radio" class="btn-check user-type" name="UserType" id="ut-@t"
+                                           value="@((int)t)" checked="@(Model.UserType == t)" autocomplete="off" />
+                                    <label class="btn btn-outline-success w-100 py-3" for="ut-@t">
+                                        <div class="mb-1">@Icons.Render(Icons.ForUserType(t), 26)</div>
+                                        <div class="fw-bold">@Display.UserType(t)</div>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                        <span asp-validation-for="UserType" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FullName" class="form-label required"></label>
+                            <input asp-for="FullName" class="form-control" />
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label required"></label>
+                            <input asp-for="Email" class="form-control" dir="ltr" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label required"></label>
+                            <input asp-for="PhoneNumber" class="form-control" dir="ltr" placeholder="968XXXXXXXX" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Region" class="form-label required"></label>
+                            <input asp-for="Region" class="form-control" list="regions" />
+                            <datalist id="regions">
+                                <option value="مسقط"></option>
+                                <option value="الباطنة شمال"></option>
+                                <option value="الباطنة جنوب"></option>
+                                <option value="الداخلية"></option>
+                                <option value="الشرقية شمال"></option>
+                                <option value="الشرقية جنوب"></option>
+                                <option value="ظفار"></option>
+                                <option value="الظاهرة"></option>
+                                <option value="البريمي"></option>
+                                <option value="مسندم"></option>
+                                <option value="الوسطى"></option>
+                            </datalist>
+                            <span asp-validation-for="Region" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label required"></label>
+                            <input asp-for="Password" class="form-control" dir="ltr" />
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ConfirmPassword" class="form-label required"></label>
+                            <input asp-for="ConfirmPassword" class="form-control" dir="ltr" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- حقول المزارع -->
+                    <fieldset class="type-fields mt-4" data-type="1">
+                        <legend class="fs-6 fw-bold">بيانات المزرعة</legend>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label asp-for="FarmArea" class="form-label"></label>
+                                <input asp-for="FarmArea" class="form-control" type="number" step="0.1" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="SoilType" class="form-label"></label>
+                                <input asp-for="SoilType" class="form-control" list="soils" />
+                                <datalist id="soils">
+                                    <option value="رملية"></option><option value="طينية"></option>
+                                    <option value="طميية"></option><option value="جيرية"></option>
+                                </datalist>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="IrrigationSource" class="form-label"></label>
+                                <input asp-for="IrrigationSource" class="form-control" list="irrigation" />
+                                <datalist id="irrigation">
+                                    <option value="أفلاج"></option><option value="بئر ارتوازي"></option>
+                                    <option value="ري بالتنقيط"></option><option value="مياه معالجة"></option>
+                                </datalist>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- حقول الوسيط -->
+                    <fieldset class="type-fields mt-4" data-type="2">
+                        <legend class="fs-6 fw-bold">بيانات الوساطة</legend>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="LicenseNumber" class="form-label"></label>
+                                <input asp-for="LicenseNumber" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="CommissionRate" class="form-label"></label>
+                                <input asp-for="CommissionRate" class="form-control" type="number" step="0.1" placeholder="2.5" />
+                                <span asp-validation-for="CommissionRate" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- حقول الشركة -->
+                    <fieldset class="type-fields mt-4" data-type="3">
+                        <legend class="fs-6 fw-bold">بيانات الشركة</legend>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label asp-for="CompanyName" class="form-label required"></label>
+                                <input asp-for="CompanyName" class="form-control" />
+                                <span asp-validation-for="CompanyName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="CommercialRegistry" class="form-label"></label>
+                                <input asp-for="CommercialRegistry" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="ActivityType" class="form-label"></label>
+                                <input asp-for="ActivityType" class="form-control" list="activities" />
+                                <datalist id="activities">
+                                    <option value="تجزئة غذائية"></option><option value="ضيافة ومطاعم"></option>
+                                    <option value="تصنيع غذائي"></option><option value="مطابخ مركزية"></option>
+                                    <option value="تصدير"></option>
+                                </datalist>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <button type="submit" class="btn btn-green w-100 mt-4">إنشاء الحساب</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function syncTypeFields() {
+            var selected = document.querySelector('.user-type:checked');
+            var val = selected ? selected.value : '1';
+            document.querySelectorAll('.type-fields').forEach(function (fs) {
+                fs.style.display = (fs.dataset.type === val) ? '' : 'none';
+            });
+        }
+        document.querySelectorAll('.user-type').forEach(function (r) {
+            r.addEventListener('change', syncTypeFields);
+        });
+        syncTypeFields();
+    </script>
+}
