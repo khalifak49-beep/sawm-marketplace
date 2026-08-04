@@ -1,0 +1,23 @@
+{
+  "name": "Sawm — سوق المحاصيل الذكي",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0",
+  "forwardPorts": [5199],
+  "portsAttributes": {
+    "5199": {
+      "label": "منصة ساوم",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "postCreateCommand": "dotnet restore src/Sawm.Web/Sawm.Web.csproj",
+  "postStartCommand": "nohup dotnet run --project src/Sawm.Web > $HOME/sawm.log 2>&1 & echo launched",
+  "remoteEnv": {
+    "DB_PROVIDER": "sqlite",
+    "ASPNETCORE_ENVIRONMENT": "Development",
+    "ASPNETCORE_URLS": "http://0.0.0.0:5199"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-dotnettools.csharp"]
+    }
+  }
+}

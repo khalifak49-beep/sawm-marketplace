@@ -17,7 +17,11 @@ public static class DbSeeder
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-        await db.Database.MigrateAsync();
+        // SQLite (سحابة) يُنشئ المخطط من النموذج مباشرة بلا ترحيلات؛ SQL Server يطبّق الترحيلات
+        if (db.Database.IsSqlite())
+            await db.Database.EnsureCreatedAsync();
+        else
+            await db.Database.MigrateAsync();
 
         foreach (var r in new[] { Roles.Farmer, Roles.Broker, Roles.Company, Roles.Admin })
             if (!await roles.RoleExistsAsync(r))

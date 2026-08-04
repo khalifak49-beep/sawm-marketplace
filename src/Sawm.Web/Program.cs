@@ -6,11 +6,24 @@ using Sawm.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("سلسلة الاتصال DefaultConnection غير معرّفة.");
+// اختيار مزوّد قاعدة البيانات:
+//   DB_PROVIDER=sqlite  → قاعدة ملفّية خفيفة (للسحابة/Codespaces، تعمل دون SQL Server)
+//   غير ذلك            → SQL Server (البيئة المحلية الافتراضية)
+var dbProvider = builder.Configuration["DB_PROVIDER"]
+    ?? Environment.GetEnvironmentVariable("DB_PROVIDER") ?? "sqlserver";
 
-builder.Services.AddDbContext<SawmDbContext>(options =>
-    options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure()));
+if (string.Equals(dbProvider, "sqlite", StringComparison.OrdinalIgnoreCase))
+{
+    var sqlitePath = builder.Configuration.GetConnectionString("Sqlite") ?? "Data Source=sawm.db";
+    builder.Services.AddDbContext<SawmDbContext>(options => options.UseSqlite(sqlitePath));
+}
+else
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("سلسلة الاتصال DefaultConnection غير معرّفة.");
+    builder.Services.AddDbContext<SawmDbContext>(options =>
+        options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure()));
+}
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
