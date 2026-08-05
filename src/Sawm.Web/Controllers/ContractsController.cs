@@ -45,6 +45,10 @@ public class ContractsController : Controller
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
 
+        // معلومات إخفاء الهوية: الإدارة ترى الكل؛ غيرها لا يرى الطرف المقابل
+        ViewBag.Uid = uid;
+        ViewBag.IsAdmin = User.IsInRole(Roles.Admin);
+        ViewBag.MyBranchIds = await _branch.BranchUserIdsAsync(uid);
         return View(list);
     }
 
@@ -79,6 +83,8 @@ public class ContractsController : Controller
 
         var uid = Uid;
         var me = await _db.Users.AsNoTracking().FirstAsync(u => u.Id == uid);
+        // دور الموقّع بدل اسمه — للحفاظ على سرية الهوية بين الطرفين
+        var signerRole = contract.SellerId == uid ? "البائع" : "المشتري";
 
         if (contract.SellerId == uid)
         {
@@ -116,17 +122,17 @@ public class ContractsController : Controller
         else
         {
             await _db.SaveChangesAsync();
-            await _service.LogAsync(id, "توقيع رقمي", $"وقّع {me.FullName}.", uid, me.FullName);
+            await _service.LogAsync(id, "توقيع رقمي", $"وقّع {signerRole}.", uid, me.FullName);
 
             // تنبيه الطرف الآخر بأن الدور صار عليه — بدونه يبقى العقد معلّقاً بلا إشارة
             var waitingId = contract.SellerSigned ? contract.BuyerId : contract.SellerId;
             await _notify.PushAsync(waitingId, "بانتظار توقيعك على العقد",
-                $"{contract.ContractNumber} — وقّع {me.FullName}، ولا يصبح العقد نشطاً إلا بتوقيعك.",
+                $"{contract.ContractNumber} — وقّع {signerRole}، ولا يصبح العقد نشطاً إلا بتوقيعك.",
                 $"/Contracts/Details/{id}");
 
             if (!string.IsNullOrEmpty(contract.BrokerId) && contract.BrokerId != uid)
                 await _notify.PushAsync(contract.BrokerId, "توقيع جزئي على عقد تشرف عليه",
-                    $"{contract.ContractNumber} — وقّع {me.FullName}، بانتظار الطرف الآخر.",
+                    $"{contract.ContractNumber} — وقّع {signerRole}، بانتظار الطرف الآخر.",
                     $"/Contracts/Details/{id}");
         }
 

@@ -58,13 +58,14 @@ public class BrokerController : Controller
                 .ToListAsync()
         };
 
-        vm.EarnedCommission = await _db.Contracts
+        // SQLite لا يدعم SUM على decimal في SQL — نُجمِّع في الذاكرة لضمان عمل المزوّدين معاً
+        vm.EarnedCommission = (await _db.Contracts
             .Where(c => c.BrokerId == uid && c.Status == ContractStatus.Completed)
-            .SumAsync(c => (decimal?)c.BrokerCommission) ?? 0m;
+            .Select(c => c.BrokerCommission).ToListAsync()).Sum();
 
-        vm.PipelineCommission = await _db.Contracts
+        vm.PipelineCommission = (await _db.Contracts
             .Where(c => c.BrokerId == uid && c.Status != ContractStatus.Completed && c.Status != ContractStatus.Cancelled)
-            .SumAsync(c => (decimal?)c.BrokerCommission) ?? 0m;
+            .Select(c => c.BrokerCommission).ToListAsync()).Sum();
 
         return View(vm);
     }

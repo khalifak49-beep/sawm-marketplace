@@ -85,7 +85,7 @@
                 <span>المزايدات (@bids.Count)</span>
                 @if (canAward && Model.Status == AuctionStatus.Active && bids.Any())
                 {
-                    <span class="small text-muted">اختر العرض الفائز بالسعر والترتيب — تُكشف الهوية عند الترسية</span>
+                    <span class="small text-muted">اختر العرض الفائز بالسعر والترتيب — الهويات تبقى محجوبة وتراها الإدارة فقط</span>
                 }
             </div>
             @if (!revealAll && bids.Any())
@@ -93,7 +93,7 @@
                 <div class="px-3 pt-2">
                     <div class="alert alert-light border small mb-0 d-flex align-items-center gap-2 py-2">
                         @Icons.Render("lock", 15)
-                        هويات المزايدين محجوبة للحفاظ على سرية المزاد. تُكشف الهوية للطرفين تلقائياً عند الترسية.
+                        هويات المزايدين محجوبة للحفاظ على سرية المزاد. لا تُكشف الهوية للأطراف — تراها الإدارة فقط.
                     </div>
                 </div>
             }
@@ -194,7 +194,7 @@
             <div class="card mb-3">
                 <div class="card-body small text-muted d-flex align-items-center gap-2">
                     @Icons.Render("lock", 16)
-                    هويات أطراف المزاد محجوبة للحفاظ على سرية التداول. تُكشف للطرفين عند الترسية.
+                    هويات أطراف المزاد محجوبة للحفاظ على سرية التداول. تراها الإدارة فقط.
                 </div>
             </div>
         }

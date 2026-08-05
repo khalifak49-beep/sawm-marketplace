@@ -42,12 +42,13 @@ public class AdminController : Controller
         ViewBag.Tenders = await _db.Tenders.CountAsync();
         ViewBag.Contracts = await _db.Contracts.CountAsync();
         ViewBag.Disputes = await _db.Contracts.CountAsync(c => c.Status == ContractStatus.Disputed);
-        ViewBag.GMV = await _db.Contracts.Where(c => c.Status == ContractStatus.Completed)
-            .SumAsync(c => (decimal?)c.TotalValue) ?? 0m;
-        ViewBag.Revenue = await _db.Contracts.Where(c => c.Status == ContractStatus.Completed)
-            .SumAsync(c => (decimal?)c.PlatformCommission) ?? 0m;
-        ViewBag.EscrowHeld = await _db.Contracts.Where(c => c.Escrow == EscrowStatus.Held)
-            .SumAsync(c => (decimal?)c.TotalValue) ?? 0m;
+        // SQLite لا يدعم SUM على decimal في SQL — نُجمِّع في الذاكرة لضمان عمل المزوّدين معاً
+        ViewBag.GMV = (await _db.Contracts.Where(c => c.Status == ContractStatus.Completed)
+            .Select(c => c.TotalValue).ToListAsync()).Sum();
+        ViewBag.Revenue = (await _db.Contracts.Where(c => c.Status == ContractStatus.Completed)
+            .Select(c => c.PlatformCommission).ToListAsync()).Sum();
+        ViewBag.EscrowHeld = (await _db.Contracts.Where(c => c.Escrow == EscrowStatus.Held)
+            .Select(c => c.TotalValue).ToListAsync()).Sum();
 
         ViewBag.RecentContracts = await _db.Contracts.AsNoTracking()
             .Include(c => c.Crop).Include(c => c.Seller).Include(c => c.Buyer).Include(c => c.Broker)

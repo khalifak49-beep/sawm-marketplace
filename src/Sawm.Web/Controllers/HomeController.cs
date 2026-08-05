@@ -46,8 +46,11 @@ public class HomeController : Controller
         vm.ActiveContracts = await contractsQuery.CountAsync(c =>
             c.Status == ContractStatus.Active || c.Status == ContractStatus.ReadyForDelivery || c.Status == ContractStatus.AwaitingSignatures);
         vm.CompletedContracts = await contractsQuery.CountAsync(c => c.Status == ContractStatus.Completed);
-        vm.TotalTradedValue = await contractsQuery.Where(c => c.Status == ContractStatus.Completed).SumAsync(c => (decimal?)c.TotalValue) ?? 0m;
-        vm.PendingEscrow = await contractsQuery.Where(c => c.Escrow == EscrowStatus.Held).SumAsync(c => (decimal?)c.TotalValue) ?? 0m;
+        // SQLite لا يدعم SUM على decimal في SQL — نُجمِّع في الذاكرة لضمان عمل المزوّدين معاً
+        vm.TotalTradedValue = (await contractsQuery.Where(c => c.Status == ContractStatus.Completed)
+            .Select(c => c.TotalValue).ToListAsync()).Sum();
+        vm.PendingEscrow = (await contractsQuery.Where(c => c.Escrow == EscrowStatus.Held)
+            .Select(c => c.TotalValue).ToListAsync()).Sum();
 
         vm.MyBids = await _db.Bids.CountAsync(b => b.BidderId == userId);
         vm.MyOffers = await _db.TenderOffers.CountAsync(o => o.SupplierId == userId || o.BrokerId == userId);

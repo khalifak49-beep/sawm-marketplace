@@ -12,6 +12,18 @@
     bool isParentOfBuyer = ViewBag.IsParentOfBuyer ?? false;  // الشركة الرئيسية لفرعٍ مشترٍ
     bool mySignature = isSeller ? Model.SellerSigned : (isBuyer || isParentOfBuyer) && Model.BuyerSigned;
 
+    // إخفاء الهوية: الإدارة وحدها ترى كل الأطراف. طرفا العقد لا يريان بعضهما.
+    // (الوسيط يرى الطرفين لأنه يشرف وينفّذ التحقق الميداني)
+    bool canSeeSeller = isAdmin || isSeller || isBroker;
+    bool canSeeBuyer  = isAdmin || isBuyer || isParentOfBuyer || isBroker;
+    // الوسيط جهة إشراف محايدة لا تُعدّ طرفاً مقابلاً — يظهر اسمه دائماً
+    // اسم الفاعل في سجل الأحداث يظهر بحسب صلاحية رؤية ذلك الطرف
+    Func<string?, string, string> actorLabel = (actorId, storedName) =>
+        actorId == Model.SellerId ? (canSeeSeller ? storedName : "البائع")
+        : actorId == Model.BuyerId ? (canSeeBuyer ? storedName : "المشتري")
+        : actorId == Model.BrokerId ? storedName
+        : (isAdmin ? storedName : "الإدارة");
+
     // هل يملك المستخدم الحالي أي إجراء متاح على العقد في حالته الراهنة؟
     // الشركة الرئيسية يمكنها التوقيع نيابة عن فرعها المشتري
     bool canSign = (isSeller || isBuyer || isParentOfBuyer) && !mySignature && Model.Status == ContractStatus.AwaitingSignatures;
@@ -68,14 +80,30 @@
                 <div class="row g-3">
                     <div class="col-md-4">
                         <div class="muted-label">البائع (المزارع)</div>
-                        <div class="fw-semibold">@Model.Seller?.FullName</div>
-                        <div class="small text-muted">@Model.Seller?.Region</div>
+                        @if (canSeeSeller)
+                        {
+                            <div class="fw-semibold">@Model.Seller?.FullName @if (isSeller) { <span class="badge bg-light">أنت</span> }</div>
+                            <div class="small text-muted">@Model.Seller?.Region</div>
+                        }
+                        else
+                        {
+                            <div class="fw-semibold d-flex align-items-center gap-1">@Icons.Render("lock", 13) هوية محجوبة</div>
+                            <div class="small text-muted">تراها الإدارة فقط</div>
+                        }
                         <div class="small"><span class="d-inline-flex align-items-center gap-1" style="color:@(Model.SellerSigned ? "var(--primary-700)" : "var(--muted-fg)")">@Icons.Render(Model.SellerSigned ? "check-circle" : "clock", 14) @(Model.SellerSigned ? "موقّع" : "لم يوقّع")</span></div>
                     </div>
                     <div class="col-md-4">
                         <div class="muted-label">المشتري</div>
-                        <div class="fw-semibold">@Model.Buyer?.FullName</div>
-                        <div class="small text-muted">@Model.Buyer?.Region</div>
+                        @if (canSeeBuyer)
+                        {
+                            <div class="fw-semibold">@Model.Buyer?.FullName @if (isBuyer) { <span class="badge bg-light">أنت</span> }</div>
+                            <div class="small text-muted">@Model.Buyer?.Region</div>
+                        }
+                        else
+                        {
+                            <div class="fw-semibold d-flex align-items-center gap-1">@Icons.Render("lock", 13) هوية محجوبة</div>
+                            <div class="small text-muted">تراها الإدارة فقط</div>
+                        }
                         <div class="small"><span class="d-inline-flex align-items-center gap-1" style="color:@(Model.BuyerSigned ? "var(--primary-700)" : "var(--muted-fg)")">@Icons.Render(Model.BuyerSigned ? "check-circle" : "clock", 14) @(Model.BuyerSigned ? "موقّع" : "لم يوقّع")</span></div>
                     </div>
                     <div class="col-md-4">
@@ -223,7 +251,7 @@
                         <li>
                             <div class="fw-semibold small">@e.Action</div>
                             <div class="text-muted small">@e.Details</div>
-                            <div class="muted-label rtl-num">@e.CreatedAt.ToString("yyyy/MM/dd HH:mm") — @e.ActorName</div>
+                            <div class="muted-label rtl-num">@e.CreatedAt.ToString("yyyy/MM/dd HH:mm") — @actorLabel(e.ActorId, e.ActorName ?? "")</div>
                         </li>
                     }
                 </ul>

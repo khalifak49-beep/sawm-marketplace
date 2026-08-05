@@ -2,6 +2,14 @@
 @{
     ViewData["Title"] = "العقود";
     var status = ViewBag.Status as ContractStatus?;
+
+    // إخفاء الهوية: الإدارة ترى كل الأطراف؛ غيرها لا يرى الطرف المقابل
+    var myUid = ViewBag.Uid as string;
+    bool isAdmin = ViewBag.IsAdmin ?? false;
+    var myBranches = ViewBag.MyBranchIds as List<string> ?? new();
+    // البائع يُكشف للإدارة/نفسه/الوسيط؛ المشتري للإدارة/نفسه/فرعه/الوسيط
+    string Seller(Contract c) => (isAdmin || c.SellerId == myUid || c.BrokerId == myUid) ? (c.Seller?.FullName ?? "—") : "هوية محجوبة";
+    string Buyer(Contract c) => (isAdmin || c.BuyerId == myUid || c.BrokerId == myUid || (c.BuyerId != null && myBranches.Contains(c.BuyerId))) ? (c.Buyer?.FullName ?? "—") : "هوية محجوبة";
 }
 
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
@@ -38,8 +46,8 @@
                 <tr>
                     <td class="rtl-num small fw-semibold">@c.ContractNumber</td>
                     <td class="small">@c.Crop?.Name</td>
-                    <td class="small">@c.Seller?.FullName</td>
-                    <td class="small">@c.Buyer?.FullName</td>
+                    <td class="small">@Seller(c)</td>
+                    <td class="small">@Buyer(c)</td>
                     <td class="small">@(c.Broker?.FullName ?? "—")</td>
                     <td class="rtl-num small">@c.Quantity.ToString("N0")</td>
                     <td class="rtl-num fw-bold">@c.TotalValue.ToString("N2")</td>
