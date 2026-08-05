@@ -1,0 +1,12 @@
+# نشر منصة ساوم على Render — رابط دائم يشغّل ASP.NET فعلاً
+services:
+  - type: web
+    name: sawm-marketplace
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DB_PROVIDER
+        value: sqlite
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
