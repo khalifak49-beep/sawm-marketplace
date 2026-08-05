@@ -1,6 +1,9 @@
 {
   "name": "Sawm — سوق المحاصيل الذكي",
   "image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0",
+  "features": {
+    "ghcr.io/devcontainers/features/sshd:1": { "version": "latest" }
+  },
   "forwardPorts": [5199],
   "portsAttributes": {
     "5199": {
