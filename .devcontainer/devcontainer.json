@@ -1,9 +1,6 @@
 {
   "name": "Sawm — سوق المحاصيل الذكي",
   "image": "mcr.microsoft.com/devcontainers/dotnet:1-8.0",
-  "features": {
-    "ghcr.io/devcontainers/features/sshd:1": { "version": "latest" }
-  },
   "forwardPorts": [5199],
   "portsAttributes": {
     "5199": {
@@ -12,7 +9,7 @@
     }
   },
   "postCreateCommand": "dotnet restore src/Sawm.Web/Sawm.Web.csproj",
-  "postStartCommand": "nohup dotnet run --project src/Sawm.Web > $HOME/sawm.log 2>&1 & echo launched",
+  "postStartCommand": "nohup dotnet run --no-launch-profile --project src/Sawm.Web > $HOME/sawm.log 2>&1 & echo launched",
   "remoteEnv": {
     "DB_PROVIDER": "sqlite",
     "ASPNETCORE_ENVIRONMENT": "Development",
