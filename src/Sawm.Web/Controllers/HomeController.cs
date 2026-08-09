@@ -21,8 +21,9 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
+        // الزائر يبدأ من بوابة الدخول (منصة ساوم / الشحن اللوجستي)
         if (User.Identity?.IsAuthenticated != true)
-            return await LandingAsync();
+            return View("Gateway");
 
         var userId = _users.GetUserId(User)!;
         var user = await _db.Users.AsNoTracking().FirstAsync(u => u.Id == userId);
@@ -77,6 +78,10 @@ public class HomeController : Controller
 
         return View(vm);
     }
+
+    /// <summary>بوابة منصة ساوم — مدخل السوق الزراعي من شاشة البوابة</summary>
+    [HttpGet]
+    public Task<IActionResult> Sawm() => LandingAsync();
 
     /// <summary>الصفحة التعريفية للزوار — نمط "سوق/دليل": البحث هو نداء العمل</summary>
     private async Task<IActionResult> LandingAsync()
