@@ -53,10 +53,20 @@ builder.Services.AddScoped<ContractService>();
 builder.Services.AddScoped<MatchingService>();
 builder.Services.AddScoped<BranchService>();
 
-// البريد الإلكتروني: إعدادات + طابور خلفي + مُرسِل SMTP
+// البريد الإلكتروني: إعدادات + طابور خلفي + مُرسِل (SMTP محلياً أو Brevo/HTTPS على السحابة)
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
 builder.Services.AddSingleton<EmailQueue>();
-builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+var emailProvider = builder.Configuration["Email:Provider"] ?? "smtp";
+if (string.Equals(emailProvider, "brevo", StringComparison.OrdinalIgnoreCase))
+{
+    // Brevo يرسل عبر HTTPS (منفذ 443) — يعمل حيث تُحجب منافذ SMTP مثل Render
+    builder.Services.AddHttpClient();
+    builder.Services.AddSingleton<IEmailSender, BrevoEmailSender>();
+}
+else
+{
+    builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+}
 builder.Services.AddHostedService<EmailQueueWorker>();
 
 // خلف وكيل Render/السحابة: احترام ترويسات البروتوكول لبناء روابط https صحيحة

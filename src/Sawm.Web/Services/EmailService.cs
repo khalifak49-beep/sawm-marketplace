@@ -10,10 +10,14 @@ namespace Sawm.Web.Services;
 public class EmailSettings
 {
     public bool Enabled { get; set; } = false;
+    /// <summary>مزوّد الإرسال: "smtp" (محلياً) أو "brevo" (HTTPS — للسحابة التي تحجب SMTP مثل Render)</summary>
+    public string Provider { get; set; } = "smtp";
     public string Host { get; set; } = "";
     public int Port { get; set; } = 465;
     public string User { get; set; } = "";
     public string Password { get; set; } = "";
+    /// <summary>مفتاح واجهة Brevo (يُضبط عبر متغيّر بيئة، لا يُحفظ في المستودع)</summary>
+    public string ApiKey { get; set; } = "";
     public string FromEmail { get; set; } = "";
     public string FromName { get; set; } = "منصة ساوم";
     public bool UseStartTls { get; set; } = true;
@@ -98,6 +102,75 @@ public class SmtpEmailSender : IEmailSender
         _log.LogInformation("أُرسل بريد '{Subject}' إلى {Count} مستلم عبر منفذ {Port}.",
             message.Subject, mime.To.Count + mime.Bcc.Count, _s.Port);
     }
+}
+
+// ── مُرسِل عبر Brevo HTTP API (منفذ 443/HTTPS) — يعمل حيث تُحجب منافذ SMTP ──
+public class BrevoEmailSender : IEmailSender
+{
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOpts = new()
+    {
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    private readonly EmailSettings _s;
+    private readonly IHttpClientFactory _http;
+    private readonly ILogger<BrevoEmailSender> _log;
+
+    public BrevoEmailSender(IOptions<EmailSettings> options, IHttpClientFactory http, ILogger<BrevoEmailSender> log)
+    {
+        _s = options.Value;
+        _http = http;
+        _log = log;
+    }
+
+    public bool IsConfigured =>
+        _s.Enabled && !string.IsNullOrWhiteSpace(_s.ApiKey) && !string.IsNullOrWhiteSpace(_s.FromEmail);
+
+    public async Task SendAsync(EmailMessage message, CancellationToken ct = default)
+    {
+        if (!IsConfigured)
+        {
+            _log.LogWarning("تخطّي إرسال بريد '{Subject}': مفتاح Brevo غير مضبوط.", message.Subject);
+            return;
+        }
+
+        var to = message.To.Where(a => !string.IsNullOrWhiteSpace(a)).Distinct()
+            .Select(a => new BrevoAddr(a)).ToList();
+        var bcc = message.Bcc?.Where(a => !string.IsNullOrWhiteSpace(a)).Distinct()
+            .Select(a => new BrevoAddr(a)).ToList();
+
+        if (to.Count == 0 && (bcc is null || bcc.Count == 0)) return;
+        if (to.Count == 0) to.Add(new BrevoAddr(_s.FromEmail));
+
+        var payload = new
+        {
+            sender = new { name = _s.FromName, email = _s.FromEmail },
+            to,
+            bcc = (bcc is { Count: > 0 }) ? bcc : null,
+            subject = message.Subject,
+            htmlContent = message.HtmlBody
+        };
+
+        var client = _http.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(25);
+        using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
+        req.Headers.TryAddWithoutValidation("api-key", _s.ApiKey);
+        req.Headers.TryAddWithoutValidation("accept", "application/json");
+        req.Content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(payload, JsonOpts),
+            System.Text.Encoding.UTF8, "application/json");
+
+        using var resp = await client.SendAsync(req, ct);
+        if (!resp.IsSuccessStatusCode)
+        {
+            var body = await resp.Content.ReadAsStringAsync(ct);
+            throw new InvalidOperationException($"Brevo API {(int)resp.StatusCode}: {body}");
+        }
+        _log.LogInformation("أُرسل بريد '{Subject}' عبر Brevo إلى {Count} مستلم.",
+            message.Subject, to.Count + (bcc?.Count ?? 0));
+    }
+
+    private sealed record BrevoAddr(string email);
 }
 
 // ── العامل الخلفي: يقرأ الطابور ويُرسل مع إعادة محاولة بسيطة ──

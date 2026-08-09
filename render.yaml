@@ -13,6 +13,12 @@ services:
       # رابط الموقع العام — لبناء روابط التفعيل والإشعارات في الرسائل
       - key: Email__BaseUrl
         value: https://sawm-marketplace.onrender.com
-      # كلمة مرور SMTP — سرّية: تُضبط في لوحة Render (Environment) ولا تُحفظ في المستودع
+      # Render يحجب منافذ SMTP الصادرة — نرسل عبر Brevo (HTTPS/443)
+      - key: Email__Provider
+        value: brevo
+      # مفتاح Brevo — سرّي: يُضبط في لوحة Render (Environment) ولا يُحفظ في المستودع
+      - key: Email__ApiKey
+        sync: false
+      # كلمة مرور SMTP — للاستخدام المحلي فقط (اختياري على Render)
       - key: Email__Password
         sync: false
