@@ -1,0 +1,35 @@
+@{
+    Layout = "~/Views/Shipping/_ShippingLayout.cshtml";
+    ViewData["Title"] = "تسجيل الدخول";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="lg-card p-4 p-lg-5">
+            <div class="text-center mb-4">
+                <span class="lg-mark d-inline-grid" style="width:56px;height:56px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:30px;height:30px;"><path d="M14 18V6a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h1"/><path d="M14 9h4l3 3v5a1 1 0 0 1-1 1h-1"/><circle cx="6.5" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg>
+                </span>
+                <h5 class="fw-bold mt-3 mb-1" style="color:#0b3b46;">دخول الناقلين</h5>
+                <p class="text-muted small mb-0">منصة الشحن اللوجستي — حساب مستقل عن منصة ساوم.</p>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">البريد الإلكتروني</label>
+                <input class="form-control" dir="ltr" placeholder="carrier@example.com" />
+            </div>
+            <div class="mb-4">
+                <label class="form-label small fw-semibold">كلمة المرور</label>
+                <input class="form-control" type="password" dir="ltr" placeholder="••••••••" />
+            </div>
+            <a class="lg-btn lg-btn-primary w-100 justify-content-center" asp-controller="Shipping" asp-action="Dashboard">دخول</a>
+
+            <div class="text-center small text-muted mt-3">
+                لا تملك حساب ناقل؟ <a asp-controller="Shipping" asp-action="Register" style="color:#0e7490;">سجّل الآن</a>
+            </div>
+            <div class="text-center mt-3">
+                <span class="lg-demo">عرض تجريبي — الدخول لا يتطلب بيانات حقيقية</span>
+            </div>
+        </div>
+    </div>
+</div>

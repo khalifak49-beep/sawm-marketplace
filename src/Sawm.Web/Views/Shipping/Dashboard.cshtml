@@ -1,0 +1,102 @@
+@{
+    Layout = "~/Views/Shipping/_ShippingLayout.cshtml";
+    ViewData["Title"] = "لوحة الناقل";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h4 class="fw-bold mb-1" style="color:#0b3b46;">مرحباً، شركة النقل التجريبية 🚚</h4>
+        <div class="text-muted small">لوحة الناقل — تصفّح الشحنات المتاحة وقدّم عروضك.</div>
+    </div>
+    <span class="lg-demo">وضع العرض التجريبي</span>
+</div>
+
+<!-- بطاقات إحصائية (عرض) -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3"><div class="lg-card p-3"><div class="text-muted small">عروضي النشطة</div><div class="fs-4 fw-bold" style="color:#0e7490;">3</div></div></div>
+    <div class="col-6 col-lg-3"><div class="lg-card p-3"><div class="text-muted small">شحنات منقولة</div><div class="fs-4 fw-bold" style="color:#0e7490;">47</div></div></div>
+    <div class="col-6 col-lg-3"><div class="lg-card p-3"><div class="text-muted small">أسطولي</div><div class="fs-4 fw-bold" style="color:#0e7490;">8 مركبات</div></div></div>
+    <div class="col-6 col-lg-3"><div class="lg-card p-3"><div class="text-muted small">تقييمي</div><div class="fs-4 fw-bold" style="color:#0e7490;">4.7 ★</div></div></div>
+</div>
+
+<!-- لوحة الاتصال بالـAPI -->
+<div class="lg-card p-3 p-lg-4 mb-3">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+        <h6 class="fw-bold mb-0" style="color:#0b3b46;">🔗 الشحنات الواردة من منصة ساوم</h6>
+        <div class="d-flex align-items-center gap-2">
+            <span id="apiStatus" class="lg-pill lg-pill-prep">جارٍ الاتصال…</span>
+            <button id="refreshBtn" class="lg-btn lg-btn-ghost">تحديث</button>
+        </div>
+    </div>
+    <div class="small text-muted mb-1">
+        تُجلب مباشرةً من واجهة ساوم البرمجية:
+        <code dir="ltr" style="color:#0e7490;">GET /api/shipments</code>
+        — <span dir="ltr">X-Api-Key: SAWM-LOGISTICS-DEMO</span>
+    </div>
+    <div class="small text-muted">تُعرض بيانات المسار والحمولة فقط — دون كشف هوية البائع أو المشتري (حفاظاً على سرّية التداول).</div>
+</div>
+
+<!-- شبكة الشحنات (تُملأ من الـAPI) -->
+<div id="shipmentsGrid" class="row g-3">
+    <div class="col-12"><div class="lg-card p-5 text-center text-muted">جارٍ تحميل الشحنات من منصة ساوم…</div></div>
+</div>
+
+@section Scripts {
+<script>
+    const grid = document.getElementById('shipmentsGrid');
+    const statusEl = document.getElementById('apiStatus');
+
+    function pill(cls, txt) { return `<span class="lg-pill ${cls}">${txt}</span>`; }
+
+    function card(s) {
+        return `
+        <div class="col-md-6 col-xl-4">
+          <div class="lg-card p-3 h-100 d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div class="fw-bold" style="color:#0b3b46;">${s.crop}</div>
+              <span class="text-muted small" dir="ltr">${s.reference}</span>
+            </div>
+            <div class="d-flex align-items-center gap-2 mb-2" style="font-size:14px;">
+              <span class="fw-semibold">${s.pickup}</span>
+              <span style="color:#06b6d4;">⟵</span>
+              <span class="fw-semibold">${s.destination}</span>
+            </div>
+            <div class="d-flex flex-wrap gap-3 text-muted small mb-3">
+              <span>⚖️ ${s.quantity} ${s.unit}</span>
+              <span>📅 ${s.readyDate}</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+              ${pill(s.status === 'جاهزة للنقل' ? 'lg-pill-ready' : 'lg-pill-prep', s.status)}
+              ${s.coldChain ? pill('lg-pill-cold', '❄️ سلسلة تبريد') : ''}
+            </div>
+            <button class="lg-btn lg-btn-primary mt-auto w-100" onclick="alert('عرض تجريبي — تقديم عرض النقل يُفعّل في النسخة الحقيقية.')">قدّم عرض نقل</button>
+          </div>
+        </div>`;
+    }
+
+    async function load() {
+        statusEl.className = 'lg-pill lg-pill-prep';
+        statusEl.textContent = 'جارٍ الاتصال…';
+        grid.innerHTML = '<div class="col-12"><div class="lg-card p-5 text-center text-muted">جارٍ تحميل الشحنات من منصة ساوم…</div></div>';
+        try {
+            const res = await fetch('/api/shipments', { headers: { 'X-Api-Key': 'SAWM-LOGISTICS-DEMO' } });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            statusEl.className = 'lg-pill lg-pill-ready';
+            statusEl.textContent = '✅ متصل بساوم — ' + data.count + ' شحنة';
+            if (!data.shipments.length) {
+                grid.innerHTML = '<div class="col-12"><div class="lg-card p-5 text-center text-muted">لا توجد شحنات متاحة حالياً في منصة ساوم.</div></div>';
+                return;
+            }
+            grid.innerHTML = data.shipments.map(card).join('');
+        } catch (e) {
+            statusEl.className = 'lg-pill lg-pill-prep';
+            statusEl.textContent = '⚠️ تعذّر الاتصال';
+            grid.innerHTML = '<div class="col-12"><div class="lg-card p-5 text-center text-danger">تعذّر جلب الشحنات من منصة ساوم (' + e.message + ').</div></div>';
+        }
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', load);
+    load();
+</script>
+}

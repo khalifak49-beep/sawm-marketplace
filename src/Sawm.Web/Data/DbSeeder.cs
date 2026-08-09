@@ -199,6 +199,37 @@ public static class DbSeeder
             db.TenderOffers.AddRange(o1, o2, o3);
             await db.SaveChangesAsync();
         }
+
+        // عقود تجريبية = شحنات جاهزة/نشطة تحتاج نقلاً (تظهر لمنصة الشحن عبر الـAPI)
+        if (!await db.Contracts.AnyAsync())
+        {
+            var tomato = await db.Crops.FirstAsync(c => c.Name == "طماطم");
+            var dates = await db.Crops.FirstAsync(c => c.Name == "تمور خلاص");
+            var potatoC = await db.Crops.FirstAsync(c => c.Name == "بطاطس");
+
+            Contract MakeContract(string number, ApplicationUser seller, ApplicationUser buyer, ApplicationUser? broker,
+                Crop crop, decimal qtyTons, decimal unitPrice, int deliveryInDays, string deliveryLocation, ContractStatus status)
+            {
+                var total = qtyTons * unitPrice;
+                return new Contract
+                {
+                    ContractNumber = number, SellerId = seller.Id, BuyerId = buyer.Id, BrokerId = broker?.Id,
+                    CropId = crop.Id, Quantity = qtyTons, UnitPrice = unitPrice, TotalValue = total,
+                    PlatformCommissionRate = 2m, PlatformCommission = total * 0.02m,
+                    NetToSeller = total * 0.98m,
+                    DeliveryDate = DateTime.Now.AddDays(deliveryInDays), DeliveryLocation = deliveryLocation,
+                    Logistics = LogisticsResponsibility.ThirdParty, Status = status, Escrow = EscrowStatus.Held,
+                    SellerSigned = true, BuyerSigned = true
+                };
+            }
+
+            db.Contracts.AddRange(
+                MakeContract("SAWM-2026-1001", f1, c1, b1, tomato, 8m, 0.55m, 3, "مسقط — المستودع المركزي", ContractStatus.ReadyForDelivery),
+                MakeContract("SAWM-2026-1002", f3, c2, b1, dates, 15m, 3.10m, 6, "صلالة — فنادق الشاطئ", ContractStatus.Active),
+                MakeContract("SAWM-2026-1003", f2, c1, null, potatoC, 12m, 0.38m, 4, "مسقط — مستودع الخليج", ContractStatus.ReadyForDelivery)
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     private static async Task<ApplicationUser> EnsureUserAsync(

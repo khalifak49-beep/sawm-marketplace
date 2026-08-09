@@ -1,0 +1,64 @@
+@{
+    Layout = "~/Views/Shipping/_ShippingLayout.cshtml";
+    ViewData["Title"] = "الرئيسية";
+}
+
+<!-- Hero -->
+<div class="lg-card p-4 p-lg-5 mb-4" style="background:radial-gradient(120% 140% at 85% 10%,#06b6d4 0%,#0e7490 45%,#0b3b46 100%); color:#fff; border:0;">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+            <span class="lg-pill" style="background:rgba(255,255,255,.18); color:#fff;">منصة مستقلة للنقل والشحن</span>
+            <h1 class="fw-bold mt-3 mb-2" style="font-size:34px;">انقل محاصيل عُمان بثقة</h1>
+            <p style="font-size:16px; color:#e0f7fb; max-width:520px; line-height:1.9;">
+                منصة الشحن اللوجستي تربط شركات وسائقي النقل بالشحنات الجاهزة في منصة ساوم —
+                عروض تنافسية، تتبّع، وتوثيق رقمي من الاستلام حتى التسليم.
+            </p>
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                <a class="lg-btn" style="background:#fff; color:#0b3b46;" asp-controller="Shipping" asp-action="Register">سجّل كناقل الآن</a>
+                <a class="lg-btn" style="background:rgba(255,255,255,.16); color:#fff; border:1px solid rgba(255,255,255,.4);" asp-controller="Shipping" asp-action="Dashboard">تصفّح الشحنات المتاحة</a>
+            </div>
+            <div class="mt-4" style="font-size:13.5px; color:#cffafe;">
+                🔗 <span id="liveCount">جارٍ الاتصال بمنصة ساوم…</span>
+            </div>
+        </div>
+        <div class="col-lg-5 text-center d-none d-lg-block">
+            <div style="font-size:150px; line-height:1; opacity:.9;">🚛</div>
+        </div>
+    </div>
+</div>
+
+<!-- كيف تعمل -->
+<h5 class="fw-bold mb-3" style="color:#0b3b46;">كيف تعمل المنصة</h5>
+<div class="row g-3 mb-4">
+    @foreach (var step in new[] {
+        ("① سجّل كناقل", "أنشئ حساب شركة النقل وحدّد أسطولك ومناطق تغطيتك."),
+        ("② تصفّح الشحنات", "شحنات جاهزة تُجلب مباشرةً من منصة ساوم عبر الربط البرمجي (API)."),
+        ("③ قدّم عرضك", "سعر ومدة تسليم تنافسية — والمزارع/الشركة تختار الأنسب."),
+        ("④ نفّذ ووثّق", "استلام وتسليم موثّق رقمياً، وتقييم يرفع فرصك القادمة.")
+    })
+    {
+        <div class="col-md-6 col-xl-3">
+            <div class="lg-card p-3 h-100">
+                <div class="fw-bold mb-1" style="color:#0e7490;">@step.Item1</div>
+                <div class="text-muted small" style="line-height:1.8;">@step.Item2</div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- شريط الربط مع ساوم -->
+<div class="lg-card p-4 text-center" style="background:#ecfeff; border-color:#a5e8f2;">
+    <div class="fw-bold mb-1" style="color:#0b3b46;">مربوطة مباشرةً بمنصة ساوم</div>
+    <div class="text-muted small mb-3">تصل الشحنات المطلوب نقلها تلقائياً من ساوم — بموافقة الإدارة والوسيط (في النسخة الحقيقية).</div>
+    <a class="lg-btn lg-btn-primary" asp-controller="Shipping" asp-action="Dashboard">شاهد الشحنات الواردة الآن</a>
+</div>
+
+@section Scripts {
+<script>
+    fetch('/api/shipments', { headers: { 'X-Api-Key': 'SAWM-LOGISTICS-DEMO' } })
+        .then(r => r.json())
+        .then(d => { document.getElementById('liveCount').textContent =
+            'متصل بمنصة ساوم — ' + d.count + ' شحنة متاحة للنقل الآن'; })
+        .catch(() => { document.getElementById('liveCount').textContent = 'تعذّر الاتصال بمنصة ساوم حالياً'; });
+</script>
+}
