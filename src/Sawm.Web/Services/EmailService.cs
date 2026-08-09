@@ -1,8 +1,8 @@
-using System.Collections.Concurrent;
-using System.Net;
-using System.Net.Mail;
 using System.Threading.Channels;
+using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.Extensions.Options;
+using MimeKit;
 
 namespace Sawm.Web.Services;
 
@@ -11,7 +11,7 @@ public class EmailSettings
 {
     public bool Enabled { get; set; } = false;
     public string Host { get; set; } = "";
-    public int Port { get; set; } = 587;
+    public int Port { get; set; } = 465;
     public string User { get; set; } = "";
     public string Password { get; set; } = "";
     public string FromEmail { get; set; } = "";
@@ -69,36 +69,34 @@ public class SmtpEmailSender : IEmailSender
             return;
         }
 
-        using var mail = new MailMessage
-        {
-            From = new MailAddress(_s.FromEmail, _s.FromName),
-            Subject = message.Subject,
-            Body = message.HtmlBody,
-            IsBodyHtml = true,
-            BodyEncoding = System.Text.Encoding.UTF8,
-            SubjectEncoding = System.Text.Encoding.UTF8
-        };
+        var mime = new MimeMessage();
+        mime.From.Add(new MailboxAddress(_s.FromName, _s.FromEmail));
         foreach (var to in message.To.Where(a => !string.IsNullOrWhiteSpace(a)).Distinct())
-            mail.To.Add(to);
+            mime.To.Add(MailboxAddress.Parse(to));
         if (message.Bcc is not null)
             foreach (var bcc in message.Bcc.Where(a => !string.IsNullOrWhiteSpace(a)).Distinct())
-                mail.Bcc.Add(bcc);
+                mime.Bcc.Add(MailboxAddress.Parse(bcc));
 
-        if (mail.To.Count == 0 && mail.Bcc.Count == 0) return;
+        if (mime.To.Count == 0 && mime.Bcc.Count == 0) return;
         // بعض الخوادم ترفض رسالة بلا مستلم ظاهر — نضع المُرسِل كمستلم إن كان الإرسال للنسخ المخفية فقط
-        if (mail.To.Count == 0) mail.To.Add(_s.FromEmail);
+        if (mime.To.Count == 0) mime.To.Add(MailboxAddress.Parse(_s.FromEmail));
 
-        using var client = new SmtpClient(_s.Host, _s.Port)
-        {
-            EnableSsl = _s.UseStartTls,
-            DeliveryMethod = SmtpDeliveryMethod.Network,
-            UseDefaultCredentials = false,
-            Credentials = new NetworkCredential(_s.User, _s.Password),
-            Timeout = 20000
-        };
+        mime.Subject = message.Subject;
+        mime.Body = new BodyBuilder { HtmlBody = message.HtmlBody }.ToMessageBody();
 
-        await client.SendMailAsync(mail, ct);
-        _log.LogInformation("أُرسل بريد '{Subject}' إلى {Count} مستلم.", message.Subject, mail.To.Count + mail.Bcc.Count);
+        // 465 → SSL ضمني عند الاتصال، 587 → STARTTLS، غير ذلك → تفاوض تلقائي
+        var security = _s.Port == 465 ? SecureSocketOptions.SslOnConnect
+                     : _s.Port == 587 ? SecureSocketOptions.StartTls
+                     : SecureSocketOptions.Auto;
+
+        using var client = new SmtpClient { Timeout = 20000 };
+        await client.ConnectAsync(_s.Host, _s.Port, security, ct);
+        await client.AuthenticateAsync(_s.User, _s.Password, ct);
+        await client.SendAsync(mime, ct);
+        await client.DisconnectAsync(true, ct);
+
+        _log.LogInformation("أُرسل بريد '{Subject}' إلى {Count} مستلم عبر منفذ {Port}.",
+            message.Subject, mime.To.Count + mime.Bcc.Count, _s.Port);
     }
 }
 
