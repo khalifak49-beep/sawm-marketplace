@@ -1,0 +1,28 @@
+@{
+    ViewData["Title"] = "تحقّق من بريدك";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="card text-center">
+            <div class="card-body p-5">
+                <div class="mb-3">@Icons.Render("mail", 48)</div>
+                <h5 class="fw-bold mb-2">راجع بريدك الإلكتروني</h5>
+                <p class="text-muted mb-1">
+                    أرسلنا رابط تفعيل إلى
+                    @if (ViewBag.Email != null)
+                    {
+                        <strong dir="ltr">@ViewBag.Email</strong>
+                    }
+                    else
+                    {
+                        <text>بريدك</text>
+                    }.
+                </p>
+                <p class="text-muted small mb-4">اضغط الرابط في الرسالة لتفعيل حسابك ثم سجّل الدخول. تحقّق من مجلد "الرسائل غير المرغوبة" إن لم تجدها.</p>
+                <a asp-action="ResendConfirmation" asp-route-email="@ViewBag.Email" class="btn btn-outline-success">لم تصلني الرسالة — أعد الإرسال</a>
+                <a asp-action="Login" class="btn btn-green ms-2">الذهاب لتسجيل الدخول</a>
+            </div>
+        </div>
+    </div>
+</div>

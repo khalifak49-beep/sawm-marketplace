@@ -612,3 +612,13 @@ public class Notification
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 }
+
+/// <summary>عنوان بريد إضافي تصله نسخة من كل إشعارات المنصة (يديره الأدمن)</summary>
+public class NotificationEmail
+{
+    public int Id { get; set; }
+    [Required, EmailAddress, MaxLength(200)] public string Email { get; set; } = string.Empty;
+    [MaxLength(100)] public string? Label { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+}

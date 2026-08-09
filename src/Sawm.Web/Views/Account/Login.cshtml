@@ -35,6 +35,13 @@
                     <button type="submit" class="btn btn-green w-100">دخول</button>
                 </form>
 
+                @if (ViewBag.ResendEmail != null)
+                {
+                    <div class="text-center small mt-3">
+                        <a asp-action="ResendConfirmation" asp-route-email="@ViewBag.ResendEmail">إعادة إرسال رابط التفعيل</a>
+                    </div>
+                }
+
                 <hr class="my-4" />
                 <div class="text-center small">
                     ليس لديك حساب؟ <a asp-action="Register">أنشئ حساباً جديداً</a>

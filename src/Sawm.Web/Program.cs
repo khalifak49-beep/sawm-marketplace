@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Sawm.Web.Data;
@@ -32,6 +33,8 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     options.Password.RequireUppercase = false;
     options.User.RequireUniqueEmail = true;
     options.SignIn.RequireConfirmedAccount = false;
+    // يجب تأكيد البريد قبل تسجيل الدخول (التحقق بالبريد)
+    options.SignIn.RequireConfirmedEmail = true;
 })
 .AddEntityFrameworkStores<SawmDbContext>()
 .AddDefaultTokenProviders();
@@ -50,6 +53,20 @@ builder.Services.AddScoped<ContractService>();
 builder.Services.AddScoped<MatchingService>();
 builder.Services.AddScoped<BranchService>();
 
+// البريد الإلكتروني: إعدادات + طابور خلفي + مُرسِل SMTP
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
+builder.Services.AddSingleton<EmailQueue>();
+builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+builder.Services.AddHostedService<EmailQueueWorker>();
+
+// خلف وكيل Render/السحابة: احترام ترويسات البروتوكول لبناء روابط https صحيحة
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    o.KnownNetworks.Clear();
+    o.KnownProxies.Clear();
+});
+
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
@@ -64,6 +81,7 @@ else
     app.UseDeveloperExceptionPage();
 }
 
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();

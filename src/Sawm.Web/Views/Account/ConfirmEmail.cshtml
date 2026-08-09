@@ -1,0 +1,27 @@
+@{
+    ViewData["Title"] = "تفعيل الحساب";
+    bool ok = ViewBag.Ok ?? false;
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="card text-center">
+            <div class="card-body p-5">
+                @if (ok)
+                {
+                    <div class="mb-3 text-success">@Icons.Render("check-circle", 52)</div>
+                    <h5 class="fw-bold mb-2">تم تفعيل حسابك بنجاح</h5>
+                    <p class="text-muted mb-4">يمكنك الآن تسجيل الدخول والبدء في استخدام منصة ساوم.</p>
+                    <a asp-action="Login" class="btn btn-green">تسجيل الدخول</a>
+                }
+                else
+                {
+                    <div class="mb-3 text-danger">@Icons.Render("alert", 52)</div>
+                    <h5 class="fw-bold mb-2">تعذّر تفعيل الحساب</h5>
+                    <p class="text-muted mb-4">الرابط غير صالح أو انتهت صلاحيته. جرّب إعادة إرسال رابط تفعيل جديد.</p>
+                    <a asp-action="ResendConfirmation" class="btn btn-outline-success">إعادة إرسال رابط التفعيل</a>
+                }
+            </div>
+        </div>
+    </div>
+</div>

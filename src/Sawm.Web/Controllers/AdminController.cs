@@ -13,11 +13,15 @@ public class AdminController : Controller
 {
     private readonly SawmDbContext _db;
     private readonly UserManager<ApplicationUser> _users;
+    private readonly EmailQueue _emails;
+    private readonly IEmailSender _emailSender;
 
-    public AdminController(SawmDbContext db, UserManager<ApplicationUser> users)
+    public AdminController(SawmDbContext db, UserManager<ApplicationUser> users, EmailQueue emails, IEmailSender emailSender)
     {
         _db = db;
         _users = users;
+        _emails = emails;
+        _emailSender = emailSender;
     }
 
     /// <summary>طابور اعتماد المزادات — المزادات بانتظار تدقيق الإدارة</summary>
@@ -177,5 +181,96 @@ public class AdminController : Controller
             .Select(x => Tuple.Create(x.Name, x.Unit, x.Qty, x.Value)).ToList();
 
         return View();
+    }
+
+    // ── مستلمو الإشعارات بالبريد: عناوين إضافية تصلها نسخة من كل إشعارات المنصة ──
+    public async Task<IActionResult> NotificationEmails()
+    {
+        ViewBag.EmailConfigured = _emailSender.IsConfigured;
+        var list = await _db.NotificationEmails.AsNoTracking()
+            .OrderByDescending(e => e.CreatedAt).ToListAsync();
+        return View(list);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddNotificationEmail(string emails, string? label)
+    {
+        // يقبل بريداً واحداً أو أكثر: سطر لكل بريد أو مفصولة بفاصلة/فاصلة منقوطة/مسافة
+        var candidates = (emails ?? "")
+            .Split(new[] { ',', ';', '\n', '\r', ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(e => e.ToLowerInvariant())
+            .Distinct()
+            .ToList();
+
+        if (candidates.Count == 0)
+        {
+            TempData["Error"] = "أدخل بريداً إلكترونياً واحداً على الأقل.";
+            return RedirectToAction(nameof(NotificationEmails));
+        }
+
+        var existing = await _db.NotificationEmails.Select(e => e.Email.ToLower()).ToListAsync();
+        int added = 0, skipped = 0, invalid = 0;
+        foreach (var e in candidates)
+        {
+            if (!e.Contains('@') || e.Length < 5 || !e.Contains('.')) { invalid++; continue; }
+            if (existing.Contains(e)) { skipped++; continue; }
+            _db.NotificationEmails.Add(new NotificationEmail { Email = e, Label = label?.Trim() });
+            existing.Add(e);
+            added++;
+        }
+        if (added > 0) await _db.SaveChangesAsync();
+
+        var parts = new List<string>();
+        if (added > 0) parts.Add($"أُضيف {added} بريد");
+        if (skipped > 0) parts.Add($"{skipped} مكرّر (تخطّي)");
+        if (invalid > 0) parts.Add($"{invalid} غير صالح");
+        if (added > 0) TempData["Success"] = string.Join(" · ", parts);
+        else TempData["Error"] = parts.Count > 0 ? string.Join(" · ", parts) : "لم يُضف أي بريد.";
+
+        return RedirectToAction(nameof(NotificationEmails));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleNotificationEmail(int id)
+    {
+        var e = await _db.NotificationEmails.FindAsync(id);
+        if (e is not null)
+        {
+            e.IsActive = !e.IsActive;
+            await _db.SaveChangesAsync();
+            TempData["Success"] = e.IsActive ? "تم التفعيل." : "تم الإيقاف.";
+        }
+        return RedirectToAction(nameof(NotificationEmails));
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteNotificationEmail(int id)
+    {
+        var e = await _db.NotificationEmails.FindAsync(id);
+        if (e is not null)
+        {
+            _db.NotificationEmails.Remove(e);
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "تم الحذف.";
+        }
+        return RedirectToAction(nameof(NotificationEmails));
+    }
+
+    /// <summary>إرسال بريد اختبار للتحقّق من إعدادات SMTP</summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public IActionResult SendTestEmail(string email)
+    {
+        email = (email ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+            TempData["Error"] = "أدخل بريداً صحيحاً لإرسال الاختبار.";
+        else if (!_emailSender.IsConfigured)
+            TempData["Error"] = "إعدادات SMTP غير مكتملة — تأكّد من ضبط كلمة المرور في متغيّرات البيئة.";
+        else
+        {
+            _emails.Enqueue(new EmailMessage(new[] { email }, "ساوم — بريد اختبار",
+                EmailTemplate.Wrap("بريد اختبار", "إن وصلتك هذه الرسالة فإعدادات البريد تعمل بنجاح. 🎉")));
+            TempData["Success"] = $"أُدرج بريد اختبار إلى {email} في الطابور. تحقّق خلال لحظات.";
+        }
+        return RedirectToAction(nameof(NotificationEmails));
     }
 }

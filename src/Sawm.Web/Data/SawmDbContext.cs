@@ -23,6 +23,7 @@ public class SawmDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<LogisticsOffer> LogisticsOffers => Set<LogisticsOffer>();
     public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<NotificationEmail> NotificationEmails => Set<NotificationEmail>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {

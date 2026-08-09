@@ -1,0 +1,28 @@
+@{
+    ViewData["Title"] = "إعادة إرسال رابط التفعيل";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-1">إعادة إرسال رابط التفعيل</h5>
+                <p class="text-muted small mb-4">أدخل بريدك الإلكتروني وسنرسل رابط تفعيل جديد إن كان الحساب غير مفعّل.</p>
+
+                <form asp-action="ResendConfirmation" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label class="form-label required">البريد الإلكتروني</label>
+                        <input name="email" value="@ViewBag.Email" class="form-control" dir="ltr" type="email" required />
+                    </div>
+                    <button type="submit" class="btn btn-green w-100">@Icons.Render("send", 16) إرسال الرابط</button>
+                </form>
+
+                <hr class="my-4" />
+                <div class="text-center small">
+                    <a asp-action="Login">العودة لتسجيل الدخول</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

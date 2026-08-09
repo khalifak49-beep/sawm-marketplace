@@ -27,6 +27,13 @@ public static class DbSeeder
             if (!await roles.RoleExistsAsync(r))
                 await roles.CreateAsync(new IdentityRole(r));
 
+        // مستلم إشعارات افتراضي — بريد المتابعة يصله نسخة من كل الإشعارات
+        if (!await db.NotificationEmails.AnyAsync())
+        {
+            db.NotificationEmails.Add(new NotificationEmail { Email = "service@althiqaom.com", Label = "بريد المنصة" });
+            await db.SaveChangesAsync();
+        }
+
         if (!await db.Crops.AnyAsync())
         {
             db.Crops.AddRange(

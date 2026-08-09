@@ -1,6 +1,8 @@
+using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Sawm.Web.Data;
 using Sawm.Web.Models;
@@ -13,12 +15,15 @@ public class AccountController : Controller
     private readonly UserManager<ApplicationUser> _users;
     private readonly SignInManager<ApplicationUser> _signIn;
     private readonly SawmDbContext _db;
+    private readonly EmailQueue _emails;
 
-    public AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn, SawmDbContext db)
+    public AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
+        SawmDbContext db, EmailQueue emails)
     {
         _users = users;
         _signIn = signIn;
         _db = db;
+        _emails = emails;
     }
 
     [HttpGet]
@@ -39,6 +44,14 @@ public class AccountController : Controller
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                 return Redirect(model.ReturnUrl);
             return RedirectToAction("Index", "Home");
+        }
+
+        if (result.IsNotAllowed)
+        {
+            // الأرجح: البريد لم يُؤكَّد بعد — نوجّه لإعادة إرسال رابط التفعيل
+            ModelState.AddModelError(string.Empty, "لم يتم تفعيل بريدك الإلكتروني بعد. تحقّق من صندوق الوارد أو أعد إرسال رابط التفعيل.");
+            ViewBag.ResendEmail = model.Email;
+            return View(model);
         }
 
         ModelState.AddModelError(string.Empty, result.IsLockedOut
@@ -69,7 +82,7 @@ public class AccountController : Controller
         {
             UserName = model.Email,
             Email = model.Email,
-            EmailConfirmed = true,
+            EmailConfirmed = false, // يتأكّد عبر رابط التفعيل المُرسَل بالبريد
             PhoneNumber = model.PhoneNumber,
             FullName = model.FullName,
             UserType = model.UserType,
@@ -120,14 +133,86 @@ public class AccountController : Controller
         {
             UserId = user.Id,
             Title = "مرحباً بك في منصة ساوم",
-            Body = "تم تفعيل حسابك. أكمل بيانات ملفك لرفع فرص المطابقة الذكية.",
+            Body = "أكمل بيانات ملفك لرفع فرص المطابقة الذكية.",
             Url = "/Account/Profile"
         });
         await _db.SaveChangesAsync();
 
-        await _signIn.SignInAsync(user, isPersistent: false);
-        TempData["Success"] = "تم إنشاء الحساب بنجاح.";
-        return RedirectToAction("Index", "Home");
+        // إرسال رابط تفعيل البريد — لا يُسجّل الدخول قبل التأكيد
+        await SendConfirmationEmailAsync(user);
+        TempData["Success"] = "تم إنشاء الحساب. أرسلنا رابط تفعيل إلى بريدك.";
+        return RedirectToAction(nameof(RegisterConfirmation), new { email = user.Email });
+    }
+
+    /// <summary>صفحة "تحقّق من بريدك" بعد التسجيل</summary>
+    [HttpGet]
+    public IActionResult RegisterConfirmation(string? email)
+    {
+        ViewBag.Email = email;
+        return View();
+    }
+
+    /// <summary>تأكيد البريد عبر الرابط المُرسَل</summary>
+    [HttpGet]
+    public async Task<IActionResult> ConfirmEmail(string? userId, string? code)
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(code))
+        {
+            ViewBag.Ok = false;
+            return View();
+        }
+
+        var user = await _users.FindByIdAsync(userId);
+        if (user is null)
+        {
+            ViewBag.Ok = false;
+            return View();
+        }
+
+        string token;
+        try { token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code)); }
+        catch { ViewBag.Ok = false; return View(); }
+
+        var result = await _users.ConfirmEmailAsync(user, token);
+        ViewBag.Ok = result.Succeeded;
+        return View();
+    }
+
+    /// <summary>إعادة إرسال رابط التفعيل</summary>
+    [HttpGet]
+    public IActionResult ResendConfirmation(string? email)
+    {
+        ViewBag.Email = email;
+        return View();
+    }
+
+    [HttpPost, ActionName("ResendConfirmation"), ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendConfirmationPost(string email)
+    {
+        // رسالة موحّدة دائماً — لا نكشف إن كان البريد مسجّلاً أم لا
+        TempData["Success"] = "إن كان البريد مسجّلاً وغير مفعّل، فقد أرسلنا إليه رابط تفعيل جديد.";
+        var user = string.IsNullOrWhiteSpace(email) ? null : await _users.FindByEmailAsync(email);
+        if (user is not null && !await _users.IsEmailConfirmedAsync(user))
+            await SendConfirmationEmailAsync(user);
+        return RedirectToAction(nameof(Login));
+    }
+
+    /// <summary>يولّد رمز التأكيد ويُدرج بريد التفعيل في الطابور</summary>
+    private async Task SendConfirmationEmailAsync(ApplicationUser user)
+    {
+        if (string.IsNullOrWhiteSpace(user.Email)) return;
+        var token = await _users.GenerateEmailConfirmationTokenAsync(user);
+        var code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        var link = Url.Action(nameof(ConfirmEmail), "Account",
+            new { userId = user.Id, code }, protocol: Request.Scheme)!;
+
+        var body = $@"مرحباً {System.Net.WebUtility.HtmlEncode(user.FullName)}،<br><br>
+            شكراً لتسجيلك في منصة ساوم. لتفعيل حسابك والبدء في استخدام المنصة، اضغط الزر أدناه.
+            <br><br>إن لم تُنشئ هذا الحساب فتجاهل هذه الرسالة.";
+        _emails.Enqueue(new EmailMessage(
+            new[] { user.Email! },
+            "ساوم — تفعيل حسابك",
+            EmailTemplate.Wrap("تفعيل حسابك في منصة ساوم", body, link, "تفعيل الحساب")));
     }
 
     [HttpPost, ValidateAntiForgeryToken]

@@ -57,11 +57,19 @@ public class BranchService
             .Select(p => p.UserId).ToListAsync();
 }
 
-/// <summary>إشعارات داخلية — نقطة الوصل المستقبلية مع واتساب للأعمال</summary>
+/// <summary>إشعارات داخلية + بريد إلكتروني: كل إشعار يُحفظ في المنصة ويُرسل بريدياً للمعنيّ ولمستلمي المتابعة</summary>
 public class NotificationService
 {
     private readonly SawmDbContext _db;
-    public NotificationService(SawmDbContext db) => _db = db;
+    private readonly EmailQueue _emails;
+    private readonly EmailSettings _emailSettings;
+
+    public NotificationService(SawmDbContext db, EmailQueue emails, Microsoft.Extensions.Options.IOptions<EmailSettings> emailSettings)
+    {
+        _db = db;
+        _emails = emails;
+        _emailSettings = emailSettings.Value;
+    }
 
     public async Task PushAsync(string userId, string title, string? body = null, string? url = null)
     {
@@ -74,6 +82,7 @@ public class NotificationService
             Url = url
         });
         await _db.SaveChangesAsync();
+        await EnqueueEmailsAsync(new[] { userId }, title, body, url);
     }
 
     public async Task PushManyAsync(IEnumerable<string> userIds, string title, string? body = null, string? url = null)
@@ -88,10 +97,57 @@ public class NotificationService
             Url = url
         }));
         await _db.SaveChangesAsync();
+        await EnqueueEmailsAsync(ids, title, body, url);
     }
 
     public Task<int> UnreadCountAsync(string userId) =>
         _db.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead);
+
+    /// <summary>
+    /// يُدرج رسائل البريد في الطابور الخلفي: رسالة فردية لكل مستخدم (منعاً لتسرّب العناوين بين الأطراف)
+    /// ونسخة واحدة لمستلمي المتابعة الإضافيين.
+    /// </summary>
+    private async Task EnqueueEmailsAsync(IReadOnlyList<string> userIds, string title, string? body, string? url)
+    {
+        try
+        {
+            var recipients = await _db.Users.AsNoTracking()
+                .Where(u => userIds.Contains(u.Id) && u.Email != null)
+                .Select(u => new { u.Email, u.FullName })
+                .ToListAsync();
+
+            var subscribers = await _db.NotificationEmails.AsNoTracking()
+                .Where(e => e.IsActive)
+                .Select(e => e.Email)
+                .ToListAsync();
+
+            var actionUrl = BuildAbsoluteUrl(url);
+            var html = EmailTemplate.Wrap(title, FormatBody(body), actionUrl, actionUrl is null ? null : "فتح في المنصة");
+            var subject = $"ساوم — {title}";
+
+            foreach (var r in recipients)
+                if (!string.IsNullOrWhiteSpace(r.Email))
+                    _emails.Enqueue(new EmailMessage(new[] { r.Email! }, subject, html));
+
+            if (subscribers.Count > 0)
+                _emails.Enqueue(new EmailMessage(Array.Empty<string>(), $"[متابعة] {subject}", html, subscribers));
+        }
+        catch
+        {
+            // البريد مكمّل للإشعار الداخلي — أي خطأ فيه يجب ألّا يُعطّل الإجراء الأساسي
+        }
+    }
+
+    private string? BuildAbsoluteUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+        if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return url;
+        var baseUrl = _emailSettings.BaseUrl?.TrimEnd('/');
+        return string.IsNullOrWhiteSpace(baseUrl) ? null : $"{baseUrl}/{url.TrimStart('/')}";
+    }
+
+    private static string FormatBody(string? body) =>
+        string.IsNullOrWhiteSpace(body) ? "لديك تحديث جديد على المنصة." : System.Net.WebUtility.HtmlEncode(body);
 }
 
 /// <summary>

@@ -10,3 +10,9 @@ services:
         value: sqlite
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
+      # رابط الموقع العام — لبناء روابط التفعيل والإشعارات في الرسائل
+      - key: Email__BaseUrl
+        value: https://sawm-marketplace.onrender.com
+      # كلمة مرور SMTP — سرّية: تُضبط في لوحة Render (Environment) ولا تُحفظ في المستودع
+      - key: Email__Password
+        sync: false
