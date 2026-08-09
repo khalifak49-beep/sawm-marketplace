@@ -104,9 +104,25 @@ public class NotificationService
         _db.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead);
 
     /// <summary>
-    /// يُدرج رسائل البريد في الطابور الخلفي: رسالة فردية لكل مستخدم (منعاً لتسرّب العناوين بين الأطراف)
-    /// ونسخة واحدة لمستلمي المتابعة الإضافيين.
+    /// موجز نشاط الإدارة: يُرسل بريداً فوريّاً لكل عناوين المتابعة المسجّلة (شاشة "مستلمو الإشعارات").
+    /// يوضّح "من فعل ماذا" بالأسماء لأن الإدارة ترى الهوية كاملة. لا يُنشئ إشعاراً داخلياً.
     /// </summary>
+    public async Task NotifyAdminsAsync(string title, string body, string? url = null)
+    {
+        try
+        {
+            var subscribers = await _db.NotificationEmails.AsNoTracking()
+                .Where(e => e.IsActive).Select(e => e.Email).ToListAsync();
+            if (subscribers.Count == 0) return;
+
+            var actionUrl = BuildAbsoluteUrl(url);
+            var html = EmailTemplate.Wrap(title, FormatBody(body), actionUrl, actionUrl is null ? null : "فتح في المنصة");
+            _emails.Enqueue(new EmailMessage(Array.Empty<string>(), $"[نشاط المنصة] ساوم — {title}", html, subscribers));
+        }
+        catch { /* موجز الإدارة مكمّل — أي خطأ فيه يجب ألّا يُعطّل الإجراء الأساسي */ }
+    }
+
+    /// <summary>يُدرج بريداً فرديّاً لكل مستخدم معنيّ بالإشعار (منعاً لتسرّب العناوين بين الأطراف).</summary>
     private async Task EnqueueEmailsAsync(IReadOnlyList<string> userIds, string title, string? body, string? url)
     {
         try
@@ -116,11 +132,6 @@ public class NotificationService
                 .Select(u => new { u.Email, u.FullName })
                 .ToListAsync();
 
-            var subscribers = await _db.NotificationEmails.AsNoTracking()
-                .Where(e => e.IsActive)
-                .Select(e => e.Email)
-                .ToListAsync();
-
             var actionUrl = BuildAbsoluteUrl(url);
             var html = EmailTemplate.Wrap(title, FormatBody(body), actionUrl, actionUrl is null ? null : "فتح في المنصة");
             var subject = $"ساوم — {title}";
@@ -128,9 +139,6 @@ public class NotificationService
             foreach (var r in recipients)
                 if (!string.IsNullOrWhiteSpace(r.Email))
                     _emails.Enqueue(new EmailMessage(new[] { r.Email! }, subject, html));
-
-            if (subscribers.Count > 0)
-                _emails.Enqueue(new EmailMessage(Array.Empty<string>(), $"[متابعة] {subject}", html, subscribers));
         }
         catch
         {

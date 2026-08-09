@@ -15,13 +15,16 @@ public class AdminController : Controller
     private readonly UserManager<ApplicationUser> _users;
     private readonly EmailQueue _emails;
     private readonly IEmailSender _emailSender;
+    private readonly NotificationService _notify;
 
-    public AdminController(SawmDbContext db, UserManager<ApplicationUser> users, EmailQueue emails, IEmailSender emailSender)
+    public AdminController(SawmDbContext db, UserManager<ApplicationUser> users, EmailQueue emails,
+        IEmailSender emailSender, NotificationService notify)
     {
         _db = db;
         _users = users;
         _emails = emails;
         _emailSender = emailSender;
+        _notify = notify;
     }
 
     /// <summary>طابور اعتماد المزادات — المزادات بانتظار تدقيق الإدارة</summary>
@@ -122,6 +125,8 @@ public class AdminController : Controller
         }
 
         await _db.SaveChangesAsync();
+        if (id <= 0)
+            await _notify.NotifyAdminsAsync("محصول جديد", $"أضافت الإدارة محصولاً جديداً إلى القائمة: \"{name.Trim()}\".");
         TempData["Success"] = "تم حفظ المحصول.";
         return RedirectToAction(nameof(Crops));
     }

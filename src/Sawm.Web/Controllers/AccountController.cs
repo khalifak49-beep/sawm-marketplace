@@ -16,14 +16,16 @@ public class AccountController : Controller
     private readonly SignInManager<ApplicationUser> _signIn;
     private readonly SawmDbContext _db;
     private readonly EmailQueue _emails;
+    private readonly NotificationService _notify;
 
     public AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
-        SawmDbContext db, EmailQueue emails)
+        SawmDbContext db, EmailQueue emails, NotificationService notify)
     {
         _users = users;
         _signIn = signIn;
         _db = db;
         _emails = emails;
+        _notify = notify;
     }
 
     [HttpGet]
@@ -41,6 +43,12 @@ public class AccountController : Controller
         var result = await _signIn.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: true);
         if (result.Succeeded)
         {
+            // موجز الإدارة: دخول مستخدم إلى المنصة
+            var who = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == model.Email);
+            if (who is not null)
+                await _notify.NotifyAdminsAsync("تسجيل دخول",
+                    $"دخل إلى المنصة: {who.FullName} ({Roles.Arabic(Roles.For(who.UserType))}) — {who.Email}");
+
             if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
                 return Redirect(model.ReturnUrl);
             return RedirectToAction("Index", "Home");
@@ -140,6 +148,11 @@ public class AccountController : Controller
 
         // إرسال رابط تفعيل البريد — لا يُسجّل الدخول قبل التأكيد
         await SendConfirmationEmailAsync(user);
+
+        // موجز الإدارة: تسجيل مستخدم جديد
+        await _notify.NotifyAdminsAsync("تسجيل مستخدم جديد",
+            $"انضمّ إلى المنصة: {user.FullName} ({Roles.Arabic(Roles.For(user.UserType))}) — {user.Email} — {user.Region}");
+
         TempData["Success"] = "تم إنشاء الحساب. أرسلنا رابط تفعيل إلى بريدك.";
         return RedirectToAction(nameof(RegisterConfirmation), new { email = user.Email });
     }

@@ -150,6 +150,12 @@ public class TendersController : Controller
             $"{model.Title} — آخر موعد للعروض {model.ClosingDate:yyyy/MM/dd}.",
             $"/Tenders/Details/{model.Id}");
 
+        // موجز الإدارة: مناقصة جديدة (بالاسم)
+        var companyName = (await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == model.CompanyId))?.FullName ?? "—";
+        await _notify.NotifyAdminsAsync("مناقصة جديدة",
+            $"طرحت {companyName} مناقصة: \"{model.Title}\" — كمية {model.Quantity:N0}، إغلاق {model.ClosingDate:yyyy/MM/dd}.",
+            $"/Tenders/Details/{model.Id}");
+
         TempData["Success"] = "تم نشر المناقصة.";
         return RedirectToAction(nameof(Details), new { id = model.Id });
     }
@@ -245,6 +251,11 @@ public class TendersController : Controller
         if (isBroker)
             await _notify.PushAsync(supplierId, "وسيط قدّم عرضاً نيابة عنك",
                 $"{tender.Title} — سعر {offer.UnitPrice:N2}.", $"/Tenders/Details/{tender.Id}");
+
+        // موجز الإدارة: عرض جديد على مناقصة (بالاسم)
+        await _notify.NotifyAdminsAsync("عرض جديد على مناقصة",
+            $"قدّم {supplier?.FullName ?? "—"} عرضاً على \"{tender.Title}\" بسعر {offer.UnitPrice:N2} (مطابقة {offer.MatchScore:N0}%).",
+            $"/Tenders/Details/{tender.Id}");
 
         TempData["Success"] = $"تم تقديم العرض. درجة المطابقة الآلية: {offer.MatchScore:N0}%.";
         return RedirectToAction(nameof(Details), new { id = tender.Id });

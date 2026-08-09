@@ -179,6 +179,7 @@ public class AuctionsController : Controller
                 crop = new Crop { Name = name, Category = "أخرى", Unit = "طن", IsActive = true };
                 _db.Crops.Add(crop);
                 await _db.SaveChangesAsync();
+                await _notify.NotifyAdminsAsync("محصول جديد", $"أُضيف محصول جديد إلى القائمة: \"{crop.Name}\" (أثناء إنشاء مزاد).");
             }
             model.CropId = crop.Id;
         }
@@ -192,6 +193,12 @@ public class AuctionsController : Controller
         var adminIds = await _db.Users.Where(u => u.UserType == UserType.Admin).Select(u => u.Id).ToListAsync();
         await _notify.PushManyAsync(adminIds, "مزاد جديد بانتظار اعتماد الإدارة",
             $"{model.Title} — يحتاج تدقيقاً قبل فتحه للمزايدة.", "/Admin/PendingAuctions");
+
+        // موجز الإدارة: مزاد جديد أُنشئ (بالاسم)
+        var creatorName = (await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == model.FarmerId))?.FullName ?? "—";
+        await _notify.NotifyAdminsAsync("مزاد جديد",
+            $"أنشأ {creatorName} مزاداً: \"{model.Title}\" — كمية {model.Quantity:N0} طن. بانتظار اعتماد الإدارة.",
+            $"/Auctions/Details/{model.Id}");
 
         TempData["Success"] = "تم إنشاء المزاد. سيُفتح للمزايدة بعد تدقيق واعتماد الإدارة.";
         return RedirectToAction(nameof(Details), new { id = model.Id });
@@ -398,6 +405,10 @@ public class AuctionsController : Controller
                 $"{profile.CompanyName}: {model.UnitPrice:N2} للوحدة (إجمالي {totalValue:N2}) — الحد {profile.BidLimit:N2}. المزاد: {auction.Title}",
                 "/Company/Activity");
 
+            await _notify.NotifyAdminsAsync("مزايدة فرع بانتظار موافقة الرئيسية",
+                $"{profile.CompanyName} قدّم مزايدة بإجمالي {totalValue:N2} تتجاوز حدّه ({profile.BidLimit:N2}) على \"{auction.Title}\" — معلّقة لموافقة الشركة الرئيسية.",
+                $"/Auctions/Details/{auction.Id}");
+
             TempData["Success"] = $"مزايدتك ({totalValue:N2}) تجاوزت حدّك ({profile.BidLimit:N2})، فأُرسلت لموافقة الشركة الرئيسية ولم تدخل المزاد بعد.";
             return RedirectToAction(nameof(Details), new { id = auction.Id });
         }
@@ -434,6 +445,19 @@ public class AuctionsController : Controller
         var outbid = auction.LiveBids.Where(b => b.BidderId != Uid).Select(b => b.BidderId).Distinct().ToList();
         await _notify.PushManyAsync(outbid, "تم تجاوز مزايدتك",
             $"{auction.Title} — السعر الحالي {model.UnitPrice:N2}.", $"/Auctions/Details/{auction.Id}");
+
+        // موجز الإدارة: مزايدة جديدة (بالاسم) + من تم تجاوزه
+        var bidderName = (await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == Uid))?.FullName ?? "—";
+        await _notify.NotifyAdminsAsync("مزايدة جديدة",
+            $"قدّم {bidderName} مزايدة على \"{auction.Title}\" بسعر {model.UnitPrice:N2} للوحدة (إجمالي {totalValue:N2}).",
+            $"/Auctions/Details/{auction.Id}");
+        if (outbid.Count > 0)
+        {
+            var outNames = await _db.Users.AsNoTracking().Where(u => outbid.Contains(u.Id)).Select(u => u.FullName).ToListAsync();
+            await _notify.NotifyAdminsAsync("تجاوز مزايدة",
+                $"في \"{auction.Title}\": تجاوز {bidderName} مزايدة {string.Join("، ", outNames)}.",
+                $"/Auctions/Details/{auction.Id}");
+        }
 
         TempData["Success"] = "تم تسجيل مزايدتك.";
         return RedirectToAction(nameof(Details), new { id = auction.Id });
@@ -480,6 +504,13 @@ public class AuctionsController : Controller
             var bp = await _db.BrokerProfiles.FirstOrDefaultAsync(p => p.UserId == auction.BrokerId);
             if (bp is not null) { bp.ClosedDeals++; await _db.SaveChangesAsync(); }
         }
+
+        // موجز الإدارة: ترسية مزاد وإنشاء عقد (بالأسماء)
+        var winnerName = (await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == winning.BidderId))?.FullName ?? "—";
+        var sellerName = (await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == auction.FarmerId))?.FullName ?? "—";
+        await _notify.NotifyAdminsAsync("ترسية مزاد",
+            $"رُسي مزاد \"{auction.Title}\" على {winnerName} بسعر {winning.UnitPrice:N2} للوحدة. البائع: {sellerName}. العقد: {contract.ContractNumber}.",
+            $"/Contracts/Details/{contract.Id}");
 
         TempData["Success"] = $"تمت الترسية وإنشاء العقد {contract.ContractNumber}.";
         return RedirectToAction("Details", "Contracts", new { id = contract.Id });

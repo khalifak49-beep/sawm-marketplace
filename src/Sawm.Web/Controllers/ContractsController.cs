@@ -118,11 +118,15 @@ public class ContractsController : Controller
             await _service.LogAsync(id, "اكتمال التوقيع", "وقّع الطرفان — العقد أصبح نشطاً.", uid, me.FullName);
             await _notify.PushManyAsync(Parties(contract), "أصبح العقد نشطاً",
                 $"{contract.ContractNumber} — يمكن الآن تمويل حساب الضمان.", $"/Contracts/Details/{id}");
+            await _notify.NotifyAdminsAsync("اكتمال توقيع عقد",
+                $"وقّع الطرفان العقد {contract.ContractNumber} — أصبح نشطاً.", $"/Contracts/Details/{id}");
         }
         else
         {
             await _db.SaveChangesAsync();
             await _service.LogAsync(id, "توقيع رقمي", $"وقّع {signerRole}.", uid, me.FullName);
+            await _notify.NotifyAdminsAsync("توقيع عقد",
+                $"وقّع {signerRole} العقد {contract.ContractNumber} — بانتظار الطرف الآخر.", $"/Contracts/Details/{id}");
 
             // تنبيه الطرف الآخر بأن الدور صار عليه — بدونه يبقى العقد معلّقاً بلا إشارة
             var waitingId = contract.SellerSigned ? contract.BuyerId : contract.SellerId;
