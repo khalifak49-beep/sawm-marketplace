@@ -87,3 +87,18 @@
         </table>
     </div>
 </div>
+
+<div class="card mt-3 border-danger">
+    <div class="card-header text-danger fw-bold">أدوات السيناريو</div>
+    <div class="card-body">
+        <p class="small text-muted mb-3">
+            تفريغ بيانات التشغيل لبدء سيناريو نظيف: يحذف المزادات والمزايدات والمناقصات والعروض والعقود
+            والإشعارات وطلبات اللوجستيات. <strong>تبقى</strong> الحسابات والصلاحيات والمحاصيل ومستلمو الإشعارات.
+        </p>
+        <form asp-action="ResetScenario" method="post"
+              onsubmit="return confirm('تأكيد تفريغ بيانات السيناريو؟ سيُحذف كل نشاط المزادات/المناقصات/العقود/اللوجستيات — مع بقاء الحسابات والصلاحيات والمحاصيل. لا يمكن التراجع.');">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-outline-danger">@Icons.Render("trash", 15) تفريغ بيانات السيناريو</button>
+        </form>
+    </div>
+</div>

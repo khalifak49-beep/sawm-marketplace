@@ -261,6 +261,30 @@ public class AdminController : Controller
         return RedirectToAction(nameof(NotificationEmails));
     }
 
+    /// <summary>
+    /// تفريغ بيانات التشغيل لبدء سيناريو نظيف — يحذف كل النشاط (مزادات/مزايدات/مناقصات/عروض/عقود/
+    /// إشعارات/لوجستيات) مع الإبقاء على الحسابات والأدوار والصلاحيات والمحاصيل ومستلمي الإشعارات.
+    /// الحذف بترتيب يحترم المفاتيح الأجنبية.
+    /// </summary>
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetScenario()
+    {
+        await _db.Bids.ExecuteDeleteAsync();
+        await _db.QualityInspections.ExecuteDeleteAsync();
+        await _db.ContractEvents.ExecuteDeleteAsync();
+        await _db.Ratings.ExecuteDeleteAsync();
+        await _db.LogisticsOffers.ExecuteDeleteAsync();
+        await _db.LogisticsRequests.ExecuteDeleteAsync();
+        await _db.Contracts.ExecuteDeleteAsync();
+        await _db.TenderOffers.ExecuteDeleteAsync();
+        await _db.Tenders.ExecuteDeleteAsync();
+        await _db.Auctions.ExecuteDeleteAsync();
+        await _db.Notifications.ExecuteDeleteAsync();
+
+        TempData["Success"] = "تم تفريغ بيانات السيناريو. بقيت الحسابات والصلاحيات والمحاصيل ومستلمو الإشعارات.";
+        return RedirectToAction(nameof(Index));
+    }
+
     /// <summary>إرسال بريد اختبار للتحقّق من إعدادات SMTP</summary>
     [HttpPost, ValidateAntiForgeryToken]
     public IActionResult SendTestEmail(string email)

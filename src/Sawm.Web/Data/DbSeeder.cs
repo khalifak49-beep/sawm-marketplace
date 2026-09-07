@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Sawm.Web.Models;
 using Sawm.Web.Services;
 
@@ -16,6 +17,11 @@ public static class DbSeeder
         var db = scope.ServiceProvider.GetRequiredService<SawmDbContext>();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
+        // SEED_DEMO=false → لا تُزرع بيانات العرض (مزادات/مناقصات/عقود)؛ تبقى الأدوار والحسابات والمحاصيل.
+        // يُستخدم لبدء سيناريو نظيف دون إعادة تعبئة البيانات عند كل إقلاع.
+        var seedDemo = config.GetValue("SEED_DEMO", true);
 
         // SQLite (سحابة) يُنشئ المخطط من النموذج مباشرة بلا ترحيلات؛ SQL Server يطبّق الترحيلات
         if (db.Database.IsSqlite())
@@ -111,7 +117,7 @@ public static class DbSeeder
         }
 
         // مزادات تجريبية
-        if (!await db.Auctions.AnyAsync())
+        if (seedDemo && !await db.Auctions.AnyAsync())
         {
             var tomato = await db.Crops.FirstAsync(c => c.Name == "طماطم");
             var dates = await db.Crops.FirstAsync(c => c.Name == "تمور خلاص");
@@ -160,7 +166,7 @@ public static class DbSeeder
         }
 
         // مناقصات تجريبية
-        if (!await db.Tenders.AnyAsync())
+        if (seedDemo && !await db.Tenders.AnyAsync())
         {
             var potato = await db.Crops.FirstAsync(c => c.Name == "بطاطس");
             var cucumber = await db.Crops.FirstAsync(c => c.Name == "خيار");
@@ -201,7 +207,7 @@ public static class DbSeeder
         }
 
         // عقود تجريبية = شحنات جاهزة/نشطة تحتاج نقلاً (تظهر لمنصة الشحن عبر الـAPI)
-        if (!await db.Contracts.AnyAsync())
+        if (seedDemo && !await db.Contracts.AnyAsync())
         {
             var tomato = await db.Crops.FirstAsync(c => c.Name == "طماطم");
             var dates = await db.Crops.FirstAsync(c => c.Name == "تمور خلاص");
