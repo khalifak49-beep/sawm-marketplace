@@ -6,7 +6,10 @@
     bool canBid = ViewBag.CanBid ?? false;
     bool isOwner = ViewBag.IsOwner ?? false;
     bool isBroker = ViewBag.IsManagingBroker ?? false;
-    bool canAward = isOwner || isBroker || User.IsInRole(Roles.Admin);
+    bool isDelegated = ViewBag.IsDelegated ?? false;
+    // انتقال الصلاحية: عند التفويض لوسيط تكون الإدارة/الترسية/الإلغاء بيد الوسيط لا المزارع
+    bool canManage = User.IsInRole(Roles.Admin) || (isDelegated ? isBroker : isOwner);
+    bool canAward = canManage;
 
     // إخفاء هوية المزايدين: تُكشف فقط للإدارة، ولصاحب المزايدة، وللشركة الأم لفروعها.
     bool revealAll = ViewBag.RevealAll ?? false;
@@ -253,7 +256,7 @@
                     </div>
                 }
 
-                @if ((isOwner || isBroker || User.IsInRole(Roles.Admin)) && Model.Status != AuctionStatus.Closed && Model.Status != AuctionStatus.Cancelled)
+                @if (canManage && Model.Status != AuctionStatus.Closed && Model.Status != AuctionStatus.Cancelled)
                 {
                     <form asp-action="Cancel" method="post" onsubmit="return confirm('تأكيد إلغاء المزاد؟');">
                         @Html.AntiForgeryToken()

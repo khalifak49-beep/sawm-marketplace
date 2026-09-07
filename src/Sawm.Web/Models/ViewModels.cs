@@ -2,6 +2,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Sawm.Web.Models;
 
+/// <summary>خيار وسيط في قائمة التفويض: المعرّف والاسم ونسبة العمولة</summary>
+public record BrokerOption(string Id, string Name, decimal Rate);
+
 public class LoginViewModel
 {
     [Required(ErrorMessage = "البريد الإلكتروني مطلوب")]

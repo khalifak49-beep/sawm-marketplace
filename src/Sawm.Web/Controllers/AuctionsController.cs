@@ -87,6 +87,7 @@ public class AuctionsController : Controller
         ViewBag.CanBid = User.IsInRole(Roles.Company) || User.IsInRole(Roles.Broker);
         ViewBag.IsOwner = User.Identity?.IsAuthenticated == true && auction.FarmerId == Uid;
         ViewBag.IsManagingBroker = User.Identity?.IsAuthenticated == true && auction.BrokerId == Uid;
+        ViewBag.IsDelegated = !string.IsNullOrEmpty(auction.BrokerId);   // مُفوَّض لوسيط؟
 
         // ── إخفاء هوية المزايدين ──────────────────────────────────
         // المزايدات مجهولة الهوية للجميع، وتُكشف فقط لـ:
@@ -129,7 +130,7 @@ public class AuctionsController : Controller
 
     [Authorize(Roles = Roles.Farmer + "," + Roles.Broker + "," + Roles.Admin)]
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Auction model, string? newCropName)
+    public async Task<IActionResult> Create(Auction model, string? newCropName, string? delegation)
     {
         ModelState.Remove(nameof(Auction.FarmerId));
         ModelState.Remove(nameof(Auction.BrokerId));
@@ -155,8 +156,21 @@ public class AuctionsController : Controller
             ModelState.AddModelError(nameof(model.FarmerId), "اختر المزارع صاحب المحصول.");
         }
 
-        // الوسيط الذي ينشئ المزاد يصبح المشرف عليه، لكن كل المزادات تنتظر اعتماد الإدارة
-        if (User.IsInRole(Roles.Broker)) model.BrokerId = Uid;
+        // نوع التفويض: الوسيط المُنشئ يُفوَّض إليه تلقائياً؛ وإلا يحدّده المزارع/الإدارة
+        // "وسيط" → يجب اختيار وسيط (وتنتقل إليه صلاحيات المزاد)؛ "ذاتي" → يديره المزارع بنفسه.
+        if (User.IsInRole(Roles.Broker) && !User.IsInRole(Roles.Admin))
+        {
+            model.BrokerId = Uid;
+        }
+        else if (delegation == "broker")
+        {
+            if (string.IsNullOrWhiteSpace(model.BrokerId))
+                ModelState.AddModelError(nameof(model.BrokerId), "اختر الوسيط المفوَّض، أو اختر التفويض الذاتي.");
+        }
+        else
+        {
+            model.BrokerId = null;   // تفويض ذاتي — يدير المزارع المزاد بنفسه
+        }
         model.Status = AuctionStatus.Pending;   // بانتظار تدقيق واعتماد الإدارة
 
         // ModelState لوحدة الكمية غير مطلوبة من المستخدم — تُضبط دائماً بالطن
@@ -300,7 +314,8 @@ public class AuctionsController : Controller
         var auction = await _db.Auctions.Include(a => a.Bids).FirstOrDefaultAsync(a => a.Id == id);
         if (auction is null) return NotFound();
 
-        if (auction.FarmerId != Uid && auction.BrokerId != Uid && !User.IsInRole(Roles.Admin))
+        // انتقال الصلاحية: عند التفويض لوسيط تكون الإدارة والإلغاء والترسية بيد الوسيط لا المزارع
+        if (!HasAuctionAuthority(auction))
             return Forbid();
 
         if (auction.Status == AuctionStatus.Closed)
@@ -471,7 +486,8 @@ public class AuctionsController : Controller
         var auction = await _db.Auctions.Include(a => a.Bids).FirstOrDefaultAsync(a => a.Id == auctionId);
         if (auction is null) return NotFound();
 
-        if (auction.FarmerId != Uid && auction.BrokerId != Uid && !User.IsInRole(Roles.Admin))
+        // الترسية بيد الوسيط عند التفويض إليه، وإلا بيد المزارع (والإدارة دائماً)
+        if (!HasAuctionAuthority(auction))
             return Forbid();
 
         if (auction.Status == AuctionStatus.Closed)
@@ -583,6 +599,17 @@ public class AuctionsController : Controller
         return RedirectToAction(nameof(Details), new { id = auction.Id });
     }
 
+    /// <summary>
+    /// من يملك صلاحيات إدارة المزاد (الإلغاء والترسية): عند التفويض لوسيط تكون بيد الوسيط،
+    /// وإلا بيد المزارع صاحب المحصول — والإدارة تملكها دائماً.
+    /// </summary>
+    private bool HasAuctionAuthority(Auction a)
+    {
+        if (User.IsInRole(Roles.Admin)) return true;
+        var uid = Uid;
+        return string.IsNullOrEmpty(a.BrokerId) ? a.FarmerId == uid : a.BrokerId == uid;
+    }
+
     private async Task FillCreateListsAsync()
     {
         ViewBag.Crops = await CropSelectListAsync(null);
@@ -591,6 +618,18 @@ public class AuctionsController : Controller
             .OrderBy(u => u.FullName)
             .Select(u => new SelectListItem { Value = u.Id, Text = u.FullName + " — " + (u.Region ?? "") })
             .ToListAsync();
+
+        // الوسطاء ونِسَب عمولاتهم — لقائمة التفويض والحساب الفوري في المعاينة
+        ViewBag.BrokerList = await (
+            from u in _db.Users.AsNoTracking().Where(u => u.UserType == UserType.Broker)
+            join bp in _db.BrokerProfiles.AsNoTracking() on u.Id equals bp.UserId into g
+            from bp in g.DefaultIfEmpty()
+            orderby u.FullName
+            select new BrokerOption(u.Id, u.FullName, bp != null ? bp.CommissionRate : 2.5m)
+        ).ToListAsync();
+
+        // عمولة المنصة المتدرّجة — لعرضها في المعاينة (JS يحسبها فوريّاً بنفس الشرائح)
+        ViewBag.PlatformTiers = "1–5 طن: 25% · 5–10 طن: 20% · أكثر من 10 طن: 15%";
     }
 
     private async Task FillEditListsAsync(Auction auction)

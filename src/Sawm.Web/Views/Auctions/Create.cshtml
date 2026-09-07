@@ -4,7 +4,9 @@
     ViewData["Title"] = "إنشاء مزاد";
     var crops = ViewBag.Crops as List<SelectListItem> ?? new();
     var farmers = ViewBag.Farmers as List<SelectListItem> ?? new();
+    var brokerList = ViewBag.BrokerList as List<BrokerOption> ?? new();
     bool isBroker = User.IsInRole(Roles.Broker) || User.IsInRole(Roles.Admin);
+    bool creatorIsBroker = User.IsInRole(Roles.Broker) && !User.IsInRole(Roles.Admin);
 }
 
 <div class="row justify-content-center">
@@ -53,6 +55,39 @@
                                 </select>
                                 <span asp-validation-for="FarmerId" class="text-danger small"></span>
                                 <div class="form-text">بإنشائك للمزاد تصبح الوسيط المشرف عليه ويُفتح للمزايدة مباشرة.</div>
+                            </div>
+                        }
+
+                        @if (!creatorIsBroker)
+                        {
+                            <div class="col-md-6">
+                                <label class="form-label required">نوع التفويض</label>
+                                <select id="delegation" name="delegation" class="form-select">
+                                    <option value="self">ذاتي — أدير المزاد بنفسي (الإلغاء والترسية بيدي)</option>
+                                    <option value="broker">وسيط — أفوّض وسيطاً بإدارة المزاد</option>
+                                </select>
+                                <span asp-validation-for="BrokerId" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6" id="brokerWrap" style="display:none">
+                                <label class="form-label required">الوسيط المفوَّض</label>
+                                <select asp-for="BrokerId" class="form-select">
+                                    <option value="">— اختر الوسيط —</option>
+                                    @foreach (var br in brokerList)
+                                    {
+                                        <option value="@br.Id" data-rate="@br.Rate.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                                            @br.Name — عمولة @br.Rate.ToString("0.##")%
+                                        </option>
+                                    }
+                                </select>
+                                <div class="form-text">تنتقل صلاحيات المزاد (الإلغاء والإدارة والترسية) إلى الوسيط المختار.</div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-12">
+                                <div class="alert alert-light border small mb-0">
+                                    بصفتك وسيطاً، أنت <strong>المشرف المفوَّض</strong> على هذا المزاد — الإلغاء والترسية بيدك.
+                                </div>
                             </div>
                         }
 
@@ -137,7 +172,47 @@
                         </div>
                     </div>
 
-                    <div class="alert alert-light border small mt-4 mb-0">
+                    <!-- معاينة المزاد قبل النشر -->
+                    <div class="card border-success mt-4" id="previewPanel">
+                        <div class="card-header bg-light fw-bold d-flex align-items-center gap-2">
+                            @Icons.Render("file-text", 16) معاينة المزاد قبل النشر
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-2 small mb-2">
+                                <div class="col-md-4"><span class="text-muted">المحصول:</span> <b id="pvCrop">—</b></div>
+                                <div class="col-md-4"><span class="text-muted">الكمية:</span> <b id="pvQty">—</b></div>
+                                <div class="col-md-4"><span class="text-muted">الجودة:</span> <b id="pvQuality">—</b></div>
+                                <div class="col-md-4"><span class="text-muted">النوع:</span> <b id="pvType">—</b></div>
+                                <div class="col-md-4"><span class="text-muted">سعر الافتتاح/طن:</span> <b id="pvPrice">—</b></div>
+                                <div class="col-md-4"><span class="text-muted">التفويض:</span> <b id="pvDelegation">ذاتي</b></div>
+                            </div>
+                            <hr class="my-2" />
+                            <div class="row g-2 text-center">
+                                <div class="col-6 col-md-3">
+                                    <div class="text-muted small">القيمة التقديرية</div>
+                                    <div class="fw-bold rtl-num" id="pvValue">0.00</div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-muted small">عمولة المنصة (<span id="pvPlatRate">—</span>)</div>
+                                    <div class="fw-bold text-danger rtl-num" id="pvPlatform">0.00</div>
+                                </div>
+                                <div class="col-6 col-md-3" id="pvBrokerCol">
+                                    <div class="text-muted small">عمولة الوسيط (<span id="pvBrokerRate">—</span>)</div>
+                                    <div class="fw-bold text-warning rtl-num" id="pvBroker">0.00</div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-muted small">صافي للمزارع</div>
+                                    <div class="fw-bold text-success rtl-num" id="pvNet">0.00</div>
+                                </div>
+                            </div>
+                            <div class="form-text mt-2">
+                                القيمة تقديرية بسعر الافتتاح؛ العمولة النهائية تُحتسب على سعر الترسية.
+                                شرائح عمولة المنصة: @(ViewBag.PlatformTiers as string).
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-light border small mt-3 mb-0">
                         بند اللوجستيات يُوثّق في العقد الرقمي منذ الخطوة الأولى.
                         <strong>ساوم ليست مسؤولة عن النقل أو التخزين أو التأمين</strong>، ودورها التوثيق والضمان الرقمي فقط.
                     </div>
@@ -173,5 +248,67 @@
         }
         cropSelect.addEventListener('change', toggleNewCrop);
         toggleNewCrop();   // يُظهره تلقائياً إن أُعيد عرض النموذج و"أخرى" مختارة
+
+        // ── التفويض + معاينة المزاد الحيّة ──────────────────────────
+        const creatorIsBroker = @(creatorIsBroker ? "true" : "false");
+        const $ = id => document.getElementById(id);
+        const num = v => { v = parseFloat(v); return isNaN(v) ? 0 : v; };
+        const money = n => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const platRate = t => t <= 5 ? 25 : (t <= 10 ? 20 : 15);
+        const selText = el => (el && el.selectedIndex >= 0) ? el.options[el.selectedIndex].text.trim() : '—';
+
+        function toggleDelegation() {
+            const d = $('delegation');
+            if (!d) return;
+            $('brokerWrap').style.display = (d.value === 'broker') ? '' : 'none';
+            update();
+        }
+
+        function update() {
+            const qty = num($('Quantity') && $('Quantity').value);
+            const price = num($('StartPrice') && $('StartPrice').value);
+            const value = qty * price;
+            const pr = platRate(qty);
+            const platform = value * pr / 100;
+
+            let brokerRate = 0, brokerAmt = 0, deleg = 'ذاتي';
+            const d = $('delegation');
+            const brokerMode = d ? (d.value === 'broker') : creatorIsBroker;
+            const bsel = document.querySelector('[name="BrokerId"]');
+            if (brokerMode && bsel && bsel.value) {
+                const opt = bsel.options[bsel.selectedIndex];
+                brokerRate = num(opt.getAttribute('data-rate'));
+                brokerAmt = value * brokerRate / 100;
+                deleg = 'وسيط: ' + opt.text.trim();
+            } else if (brokerMode) {
+                deleg = creatorIsBroker ? 'وسيط (أنت)' : 'وسيط (لم يُختر بعد)';
+            }
+
+            const cs = $('cropSelect');
+            $('pvCrop').textContent = (cs && cs.selectedIndex > 0 && cs.value !== '-1') ? selText(cs)
+                                     : (($('newCropName') && $('newCropName').value) || '—');
+            $('pvQty').textContent = qty ? (qty + ' طن') : '—';
+            $('pvQuality').textContent = selText($('Quality'));
+            $('pvType').textContent = selText($('auctionType'));
+            $('pvPrice').textContent = price ? (money(price) + ' ر.ع') : '—';
+            $('pvDelegation').textContent = deleg;
+
+            $('pvValue').textContent = money(value);
+            $('pvPlatRate').textContent = pr + '%';
+            $('pvPlatform').textContent = money(platform);
+            $('pvBrokerRate').textContent = brokerRate ? (brokerRate + '%') : '—';
+            $('pvBroker').textContent = money(brokerAmt);
+            $('pvBrokerCol').style.opacity = brokerAmt > 0 ? '1' : '.5';
+            $('pvNet').textContent = money(value - platform - brokerAmt);
+        }
+
+        if ($('delegation')) $('delegation').addEventListener('change', toggleDelegation);
+        ['Quantity', 'StartPrice', 'Quality', 'auctionType', 'cropSelect', 'newCropName'].forEach(function (id) {
+            const el = $(id); if (el) { el.addEventListener('input', update); el.addEventListener('change', update); }
+        });
+        const bsel0 = document.querySelector('[name="BrokerId"]');
+        if (bsel0) bsel0.addEventListener('change', update);
+        toggleDelegation();
+        update();
     </script>
 }

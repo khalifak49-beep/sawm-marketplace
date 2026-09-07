@@ -221,6 +221,10 @@ public class ContractService
 
     public const decimal DefaultPlatformCommission = 2.0m;
 
+    /// <summary>عمولة المنصة متدرّجة حسب الكمية بالطن: 1–5 طن = 25%، 5–10 طن = 20%، أكبر من 10 طن = 15%</summary>
+    public static decimal PlatformRateForTons(decimal tons) =>
+        tons <= 5m ? 25m : tons <= 10m ? 20m : 15m;
+
     public ContractService(SawmDbContext db, NotificationService notify)
     {
         _db = db;
@@ -277,7 +281,7 @@ public class ContractService
             AuctionId = auction.Id,
             Quantity = auction.Quantity,
             UnitPrice = winning.UnitPrice,
-            PlatformCommissionRate = DefaultPlatformCommission,
+            PlatformCommissionRate = PlatformRateForTons(auction.Quantity),
             BrokerCommissionRate = brokerRate,
             DeliveryDate = auction.ExpectedHarvestDate ?? auction.EndDate.AddDays(7),
             DeliveryLocation = auction.PickupLocation,
