@@ -164,6 +164,85 @@
                     </tbody>
                 </table>
 
+                @{
+                    bool paid = Model.Escrow is EscrowStatus.Held or EscrowStatus.Released;
+                    // ملخّص خاص بكل طرف — يرى رقمه هو
+                    string mineLabel = isBuyer ? (paid ? "المبلغ الذي دفعته" : "المطلوب دفعه")
+                                     : isSeller ? "صافي مستحقك"
+                                     : isBroker ? "عمولتك"
+                                     : "إيراد عمولة المنصة";
+                    decimal mineAmount = isBuyer ? Model.TotalValue
+                                       : isSeller ? Model.NetToSeller
+                                       : isBroker ? Model.BrokerCommission
+                                       : Model.PlatformCommission;
+                    string mineCls = isBuyer ? "primary" : isSeller ? "success" : isBroker ? "warning" : "secondary";
+                }
+
+                @if (isBuyer || isSeller || isBroker || isAdmin)
+                {
+                    <div class="alert alert-@mineCls d-flex justify-content-between align-items-center mt-3 mb-0">
+                        <span class="fw-semibold">@mineLabel</span>
+                        <span class="fw-bold rtl-num fs-5">@mineAmount.ToString("N2") ر.ع</span>
+                    </div>
+                }
+
+                @* ── الدفع: المشتري يختار الوسيلة ويدفع ── *@
+                @if (canFund)
+                {
+                    <div class="card border-warning mt-3">
+                        <div class="card-header bg-light fw-bold">@Icons.Render("wallet", 16) الدفع مطلوب — اختر وسيلة الدفع</div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="text-muted">المبلغ المطلوب دفعه</span>
+                                <span class="fw-bold rtl-num fs-4">@Model.TotalValue.ToString("N2") ر.ع</span>
+                            </div>
+                            <form asp-action="FundEscrow" method="post" onsubmit="return confirm('تأكيد إتمام الدفع؟');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@Model.Id" />
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-4">
+                                        <label class="btn btn-outline-primary w-100 text-start">
+                                            <input class="form-check-input me-1" type="radio" name="method" value="thawani" checked /> ثواني (Thawani)
+                                        </label>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="btn btn-outline-primary w-100 text-start">
+                                            <input class="form-check-input me-1" type="radio" name="method" value="card" /> بطاقة بنكية
+                                        </label>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="btn btn-outline-primary w-100 text-start">
+                                            <input class="form-check-input me-1" type="radio" name="method" value="transfer" /> تحويل بنكي
+                                        </label>
+                                    </div>
+                                </div>
+                                <button class="btn btn-brand w-100">@Icons.Render("lock", 16) ادفع الآن @Model.TotalValue.ToString("N2") ر.ع</button>
+                            </form>
+                            <div class="small text-muted mt-2">
+                                يُحتجز المبلغ في حساب الضمان ولا يُحرَّر للمزارع إلا بعد تأكيد الاستلام.
+                                <span class="badge bg-warning-subtle text-dark">بوابة الدفع — عرض تجريبي</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @* ── تم الدفع: يراه جميع الأطراف (الوسيط أيضاً) ── *@
+                @if (paid && Model.PaidAt is not null)
+                {
+                    <div class="card border-success mt-3">
+                        <div class="card-header bg-light fw-bold text-success">@Icons.Render("check-circle", 16) تم الدفع</div>
+                        <div class="card-body">
+                            <div class="row g-2 small">
+                                <div class="col-md-4"><span class="text-muted">المبلغ المدفوع:</span> <b class="rtl-num">@Model.TotalValue.ToString("N2") ر.ع</b></div>
+                                <div class="col-md-4"><span class="text-muted">الوسيلة:</span> <b>@Model.PaymentMethod</b></div>
+                                <div class="col-md-4"><span class="text-muted">المرجع:</span> <b dir="ltr">@Model.PaymentReference</b></div>
+                                <div class="col-md-4"><span class="text-muted">تاريخ الدفع:</span> <b class="rtl-num">@Model.PaidAt?.ToString("yyyy/MM/dd HH:mm")</b></div>
+                                <div class="col-md-4"><span class="text-muted">الحالة:</span> <b>@(Model.Escrow == EscrowStatus.Released ? "محرَّر للمزارع" : "محتجز في الضمان")</b></div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
                 <div class="alert alert-light border small mt-3 mb-0">
                     <strong>مسؤولية اللوجستيات:</strong> @Display.Logistics(Model.Logistics) —
                     مكان التسليم: @(Model.DeliveryLocation ?? "غير محدد").
@@ -284,12 +363,9 @@
 
                 @if (canFund)
                 {
-                    <form asp-action="FundEscrow" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@Model.Id" />
-                        <button class="btn btn-brand w-100">@Icons.Render("lock", 16) تمويل حساب الضمان</button>
-                    </form>
-                    <div class="small text-muted">يُحتجز المبلغ إلكترونياً ولا يُحرَّر إلا بعد تأكيد الاستلام.</div>
+                    <a href="#" class="btn btn-brand w-100" onclick="document.querySelector('form[action*=FundEscrow]')?.scrollIntoView({behavior:'smooth'});return false;">
+                        @Icons.Render("wallet", 16) الانتقال إلى الدفع
+                    </a>
                 }
 
                 @if (canConfirm)

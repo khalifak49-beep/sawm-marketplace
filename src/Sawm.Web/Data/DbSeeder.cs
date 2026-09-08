@@ -213,26 +213,29 @@ public static class DbSeeder
             var dates = await db.Crops.FirstAsync(c => c.Name == "تمور خلاص");
             var potatoC = await db.Crops.FirstAsync(c => c.Name == "بطاطس");
 
+            // يستخدم منطق العمولات الحقيقي: عمولة منصة متدرّجة حسب الطن + عمولة الوسيط بنسبته
             Contract MakeContract(string number, ApplicationUser seller, ApplicationUser buyer, ApplicationUser? broker,
-                Crop crop, decimal qtyTons, decimal unitPrice, int deliveryInDays, string deliveryLocation, ContractStatus status)
+                decimal brokerRate, Crop crop, decimal qtyTons, decimal pricePerTon, int deliveryInDays, string deliveryLocation)
             {
-                var total = qtyTons * unitPrice;
-                return new Contract
+                var c = new Contract
                 {
                     ContractNumber = number, SellerId = seller.Id, BuyerId = buyer.Id, BrokerId = broker?.Id,
-                    CropId = crop.Id, Quantity = qtyTons, UnitPrice = unitPrice, TotalValue = total,
-                    PlatformCommissionRate = 2m, PlatformCommission = total * 0.02m,
-                    NetToSeller = total * 0.98m,
+                    CropId = crop.Id, Quantity = qtyTons, UnitPrice = pricePerTon,
+                    PlatformCommissionRate = ContractService.PlatformRateForTons(qtyTons),
+                    BrokerCommissionRate = brokerRate,
                     DeliveryDate = DateTime.Now.AddDays(deliveryInDays), DeliveryLocation = deliveryLocation,
-                    Logistics = LogisticsResponsibility.ThirdParty, Status = status, Escrow = EscrowStatus.Held,
-                    SellerSigned = true, BuyerSigned = true
+                    Logistics = LogisticsResponsibility.ThirdParty, Status = ContractStatus.Active, Escrow = EscrowStatus.NotFunded,
+                    SellerSigned = true, BuyerSigned = true   // موقّع من الطرفين وبانتظار دفع المشتري
                 };
+                ContractService.ApplyFinancials(c);
+                return c;
             }
 
+            // موقّعة وبانتظار دفع المشتري (Active + NotFunded) — تُظهر خطوة الدفع مباشرةً، بأسعار الطن الواقعية
             db.Contracts.AddRange(
-                MakeContract("SAWM-2026-1001", f1, c1, b1, tomato, 8m, 0.55m, 3, "مسقط — المستودع المركزي", ContractStatus.ReadyForDelivery),
-                MakeContract("SAWM-2026-1002", f3, c2, b1, dates, 15m, 3.10m, 6, "صلالة — فنادق الشاطئ", ContractStatus.Active),
-                MakeContract("SAWM-2026-1003", f2, c1, null, potatoC, 12m, 0.38m, 4, "مسقط — مستودع الخليج", ContractStatus.ReadyForDelivery)
+                MakeContract("SAWM-2026-1001", f1, c1, b1, 2.5m, tomato, 8m, 350m, 3, "مسقط — المستودع المركزي"),
+                MakeContract("SAWM-2026-1002", f3, c2, b2, 3.0m, dates, 15m, 3100m, 6, "صلالة — فنادق الشاطئ"),
+                MakeContract("SAWM-2026-1003", f2, c1, null, 0m, potatoC, 12m, 380m, 4, "مسقط — مستودع الخليج")
             );
             await db.SaveChangesAsync();
         }

@@ -146,9 +146,9 @@ public class ContractsController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
-    // ── الضمان المالي: المشتري يمول، والنظام يحرر بعد الاستلام ──────────────
+    // ── الدفع والضمان المالي: المشتري يدفع عبر بوابة، والنظام يحتجز حتى الاستلام ──
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> FundEscrow(int id)
+    public async Task<IActionResult> FundEscrow(int id, string? method)
     {
         var contract = await LoadAsync(id, tracking: true);
         if (contract is null) return NotFound();
@@ -156,19 +156,48 @@ public class ContractsController : Controller
 
         if (contract.Status != ContractStatus.Active)
         {
-            TempData["Error"] = "لا يمكن تمويل الضمان قبل اكتمال توقيع الطرفين.";
+            TempData["Error"] = "لا يمكن الدفع قبل اكتمال توقيع الطرفين.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (contract.Escrow == EscrowStatus.Held)
+        {
+            TempData["Error"] = "تم الدفع مسبقاً على هذا العقد.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        // بوابة الدفع (عرض): تسجيل الوسيلة وتوليد مرجع للعملية
+        var methodName = method switch
+        {
+            "thawani" => "ثواني (Thawani Pay)",
+            "card" => "بطاقة بنكية (Visa/Mastercard)",
+            "transfer" => "تحويل بنكي",
+            _ => "بوابة دفع"
+        };
         contract.Escrow = EscrowStatus.Held;
+        contract.PaymentMethod = methodName;
+        contract.PaymentReference = "PAY-" + DateTime.Now.ToString("yyMMdd") + "-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        contract.PaidAt = DateTime.Now;
         await _db.SaveChangesAsync();
 
         var me = await _db.Users.AsNoTracking().FirstAsync(u => u.Id == Uid);
-        await _service.LogAsync(id, "تمويل الضمان", $"احتُجز مبلغ {contract.TotalValue:N2} في حساب الضمان.", Uid, me.FullName);
-        await _notify.PushManyAsync(Parties(contract), "تم احتجاز مبلغ العقد",
-            $"{contract.ContractNumber} — المزارع يمكنه بدء التنفيذ بأمان.", $"/Contracts/Details/{id}");
+        await _service.LogAsync(id, "الدفع وتمويل الضمان",
+            $"دفع المشتري {contract.TotalValue:N2} ر.ع عبر {methodName} (مرجع {contract.PaymentReference}) — محتجز في الضمان.", Uid, me.FullName);
 
-        TempData["Success"] = "تم احتجاز المبلغ في حساب الضمان الإلكتروني.";
+        // إشعار الوسيط صراحةً بأن الدفع تمّ + عمولته
+        if (!string.IsNullOrEmpty(contract.BrokerId))
+            await _notify.PushAsync(contract.BrokerId, "تم الدفع على عقد تشرف عليه",
+                $"{contract.ContractNumber} — دُفع مبلغ العقد ({contract.TotalValue:N2} ر.ع) عبر {methodName}. عمولتك {contract.BrokerCommission:N2} ر.ع.",
+                $"/Contracts/Details/{id}");
+        // إشعار البائع بصافي مستحقه
+        await _notify.PushAsync(contract.SellerId, "تم دفع مبلغ عقدك",
+            $"{contract.ContractNumber} — المبلغ محتجز في الضمان. صافي مستحقك {contract.NetToSeller:N2} ر.ع يُحرَّر بعد تأكيد الاستلام.",
+            $"/Contracts/Details/{id}");
+        // موجز الإدارة
+        await _notify.NotifyAdminsAsync("تم الدفع",
+            $"دُفع مبلغ العقد {contract.ContractNumber} ({contract.TotalValue:N2} ر.ع) عبر {methodName}. عمولة المنصة {contract.PlatformCommission:N2}، عمولة الوسيط {contract.BrokerCommission:N2}.",
+            $"/Contracts/Details/{id}");
+
+        TempData["Success"] = $"تم الدفع بنجاح عبر {methodName}. المبلغ محتجز في حساب الضمان حتى تأكيد الاستلام.";
         return RedirectToAction(nameof(Details), new { id });
     }
 

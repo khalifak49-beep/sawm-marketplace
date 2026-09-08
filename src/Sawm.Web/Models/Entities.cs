@@ -449,6 +449,14 @@ public class Contract
     [Display(Name = "حالة الضمان المالي")]
     public EscrowStatus Escrow { get; set; } = EscrowStatus.NotFunded;
 
+    // ── بيانات الدفع (تُملأ عند دفع المشتري عبر بوابة الدفع) ──
+    [MaxLength(40), Display(Name = "وسيلة الدفع")]
+    public string? PaymentMethod { get; set; }
+    [MaxLength(60), Display(Name = "مرجع عملية الدفع")]
+    public string? PaymentReference { get; set; }
+    [Display(Name = "تاريخ الدفع")]
+    public DateTime? PaidAt { get; set; }
+
     [Display(Name = "وقّع البائع")]
     public bool SellerSigned { get; set; }
 
