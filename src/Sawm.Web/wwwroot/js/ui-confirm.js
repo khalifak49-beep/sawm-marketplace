@@ -58,11 +58,16 @@
         if (!(form instanceof HTMLFormElement)) return;
         var msg = form.getAttribute('data-confirm');
         if (!msg || form.dataset.confirmed === '1') return;
+        // امنع الإرسال الفعلي، ومنع المعالجات الأخرى (مثل ستارة الانتقال في motion.js)
+        // من العمل قبل أن يؤكّد المستخدم — وإلا بقيت الستارة الخضراء ظاهرة عند الإلغاء.
         e.preventDefault();
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
         var submitter = e.submitter;
         show(msg).then(function (ok) {
             if (!ok) return;
             form.dataset.confirmed = '1';
+            // إرسال حقيقي الآن — يمرّ لمعالج motion.js فترتفع الستارة للتنقّل (السلوك المقصود)
             if (form.requestSubmit) form.requestSubmit(submitter); else form.submit();
         });
     }, true);
