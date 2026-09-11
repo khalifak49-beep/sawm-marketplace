@@ -38,7 +38,7 @@
                     <td class="rtl-num small">@b.CreatedAt.ToString("MM/dd HH:mm")</td>
                     <td class="text-nowrap">
                         <form asp-action="ApproveBid" method="post" class="d-inline"
-                              onsubmit="return confirm('الموافقة على إدخال مزايدة الفرع في المزاد؟');">
+                              data-confirm="الموافقة على إدخال مزايدة الفرع في المزاد؟">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="bidId" value="@b.Id" />
                             <button class="btn btn-sm btn-green">موافقة</button>

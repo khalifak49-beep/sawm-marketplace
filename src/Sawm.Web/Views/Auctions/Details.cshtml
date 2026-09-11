@@ -141,7 +141,7 @@
                                 @if (canAward && Model.Status == AuctionStatus.Active)
                                 {
                                     <form asp-action="AcceptBid" method="post" class="d-inline"
-                                          onsubmit="return confirm('تأكيد الترسية على هذه المزايدة؟ سيتم توليد عقد رقمي.');">
+                                          data-confirm="تأكيد الترسية على هذه المزايدة؟ سيتم توليد عقد رقمي.">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="auctionId" value="@Model.Id" />
                                         <input type="hidden" name="bidId" value="@b.Id" />
@@ -258,7 +258,7 @@
 
                 @if (canManage && Model.Status != AuctionStatus.Closed && Model.Status != AuctionStatus.Cancelled)
                 {
-                    <form asp-action="Cancel" method="post" onsubmit="return confirm('تأكيد إلغاء المزاد؟');">
+                    <form asp-action="Cancel" method="post" data-confirm="تأكيد إلغاء المزاد؟">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@Model.Id" />
                         <button class="btn btn-outline-danger w-100">إلغاء المزاد</button>

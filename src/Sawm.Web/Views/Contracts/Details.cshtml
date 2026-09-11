@@ -196,7 +196,7 @@
                                 <span class="text-muted">المبلغ المطلوب دفعه</span>
                                 <span class="fw-bold rtl-num fs-4">@Model.TotalValue.ToString("N2") ر.ع</span>
                             </div>
-                            <form asp-action="FundEscrow" method="post" onsubmit="return confirm('تأكيد إتمام الدفع؟');">
+                            <form asp-action="FundEscrow" method="post" data-confirm="تأكيد إتمام الدفع؟">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@Model.Id" />
                                 <div class="row g-2 mb-3">
@@ -369,7 +369,7 @@
 
                 @if (canConfirm)
                 {
-                    <form asp-action="ConfirmDelivery" method="post" onsubmit="return confirm('تأكيد استلام الكمية ومطابقتها؟');">
+                    <form asp-action="ConfirmDelivery" method="post" data-confirm="تأكيد استلام الكمية ومطابقتها؟">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@Model.Id" />
                         <button class="btn btn-outline-success w-100">@Icons.Render("package", 16) تأكيد الاستلام</button>
@@ -378,7 +378,7 @@
 
                 @if (canRelease)
                 {
-                    <form asp-action="ReleasePayment" method="post" onsubmit="return confirm('تحرير المبلغ المحتجز للمزارع؟');">
+                    <form asp-action="ReleasePayment" method="post" data-confirm="تحرير المبلغ المحتجز للمزارع؟">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@Model.Id" />
                         <button class="btn btn-green w-100">@Icons.Render("check-circle", 16) تحرير الدفع وإغلاق العقد</button>

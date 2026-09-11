@@ -112,7 +112,7 @@
                                 @if (canAward && Model.Status != TenderStatus.Awarded && Model.Status != TenderStatus.Cancelled)
                                 {
                                     <form asp-action="Award" method="post" class="d-inline"
-                                          onsubmit="return confirm('تأكيد الترسية على هذا العرض؟ سيتم توليد عقد رقمي.');">
+                                          data-confirm="تأكيد الترسية على هذا العرض؟ سيتم توليد عقد رقمي.">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="tenderId" value="@Model.Id" />
                                         <input type="hidden" name="offerId" value="@o.Id" />
@@ -162,7 +162,7 @@
 
                 @if (canAward && Model.Status != TenderStatus.Awarded && Model.Status != TenderStatus.Cancelled)
                 {
-                    <form asp-action="CancelTender" method="post" onsubmit="return confirm('تأكيد إلغاء المناقصة؟');">
+                    <form asp-action="CancelTender" method="post" data-confirm="تأكيد إلغاء المناقصة؟">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="id" value="@Model.Id" />
                         <button class="btn btn-outline-danger w-100">إلغاء المناقصة</button>

@@ -82,7 +82,7 @@
                                     <button class="btn btn-sm btn-outline-secondary">@(e.IsActive ? "إيقاف" : "تفعيل")</button>
                                 </form>
                                 <form asp-action="DeleteNotificationEmail" method="post" class="d-inline"
-                                      onsubmit="return confirm('حذف هذا المستلم؟');">
+                                      data-confirm="حذف هذا المستلم؟">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@e.Id" />
                                     <button class="btn btn-sm btn-outline-danger" title="حذف">@Icons.Render("trash", 14)</button>

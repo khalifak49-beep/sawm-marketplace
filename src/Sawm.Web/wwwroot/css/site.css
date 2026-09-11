@@ -774,6 +774,45 @@ td.rtl-num, th.rtl-num { display: table-cell; }
     .form-control:focus, .form-select:focus { transform: none !important; }
 }
 
+/* ── نافذة التأكيد المنبثقة (بديل confirm) ─────────────────────── */
+.cx-overlay {
+    position: fixed; inset: 0; z-index: 4000;
+    display: grid; place-items: center; padding: 16px;
+    background: rgba(15, 61, 36, .42);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    opacity: 0; visibility: hidden;
+    transition: opacity var(--t-base), visibility var(--t-base);
+}
+.cx-overlay.show { opacity: 1; visibility: visible; }
+.cx-modal {
+    width: min(430px, 94vw);
+    background: var(--glass-solid);
+    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-5);
+    transform: translateY(10px) scale(.97);
+    transition: transform var(--t-base);
+}
+.cx-overlay.show .cx-modal { transform: none; }
+.cx-head { display: flex; gap: var(--space-3); align-items: flex-start; }
+.cx-icon {
+    width: 46px; height: 46px; flex: none; border-radius: var(--r-md);
+    background: var(--grad-sheen); color: #fff;
+    display: grid; place-items: center;
+    box-shadow: 0 6px 16px rgba(21, 128, 61, .30);
+}
+.cx-icon svg { width: 24px; height: 24px; }
+.cx-title { font-weight: 700; font-size: 1.02rem; color: var(--primary-900); margin-bottom: 3px; }
+.cx-msg { font-size: .92rem; color: var(--fg); line-height: 1.75; }
+.cx-actions { display: flex; gap: var(--space-2); margin-top: var(--space-5); }
+.cx-actions .btn { flex: 1; }
+@media (prefers-reduced-motion: reduce) {
+    .cx-overlay, .cx-modal { transition: none !important; }
+    .cx-modal { transform: none !important; }
+}
+
 /* شريط نداء العمل — يجب أن يكون صنفاً لا نمطاً سطرياً،
    لأن clearProps في GSAP يمسح سمة style بالكامل فيختفي النص الأبيض */
 .cta-band {

@@ -42,7 +42,7 @@
                             @Icons.Render("note", 14) تعديل
                         </a>
                         <form asp-controller="Auctions" asp-action="Approve" method="post" class="d-inline"
-                              onsubmit="return confirm('اعتماد المزاد وفتحه للمزايدة؟');">
+                              data-confirm="اعتماد المزاد وفتحه للمزايدة؟">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@a.Id" />
                             <button class="btn btn-sm btn-green">اعتماد</button>
