@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Sawm.Web.Data;
 using Sawm.Web.Models;
@@ -63,12 +64,16 @@ public class NotificationService
     private readonly SawmDbContext _db;
     private readonly EmailQueue _emails;
     private readonly EmailSettings _emailSettings;
+    private readonly Microsoft.AspNetCore.SignalR.IHubContext<Sawm.Web.Hubs.LiveHub> _hub;
 
-    public NotificationService(SawmDbContext db, EmailQueue emails, Microsoft.Extensions.Options.IOptions<EmailSettings> emailSettings)
+    public NotificationService(SawmDbContext db, EmailQueue emails,
+        Microsoft.Extensions.Options.IOptions<EmailSettings> emailSettings,
+        Microsoft.AspNetCore.SignalR.IHubContext<Sawm.Web.Hubs.LiveHub> hub)
     {
         _db = db;
         _emails = emails;
         _emailSettings = emailSettings.Value;
+        _hub = hub;
     }
 
     public async Task PushAsync(string userId, string title, string? body = null, string? url = null)
@@ -83,6 +88,7 @@ public class NotificationService
         });
         await _db.SaveChangesAsync();
         await EnqueueEmailsAsync(new[] { userId }, title, body, url);
+        await BroadcastAsync(new[] { userId }, title, body, url);
     }
 
     public async Task PushManyAsync(IEnumerable<string> userIds, string title, string? body = null, string? url = null)
@@ -98,6 +104,30 @@ public class NotificationService
         }));
         await _db.SaveChangesAsync();
         await EnqueueEmailsAsync(ids, title, body, url);
+        await BroadcastAsync(ids, title, body, url);
+    }
+
+    /// <summary>البث اللحظي: إشعار شخصي لكل مستخدم + إشارة تغيّر بيانات للفئة لتحديث الشاشات المفتوحة.</summary>
+    private async Task BroadcastAsync(IReadOnlyList<string> userIds, string title, string? body, string? url)
+    {
+        try
+        {
+            foreach (var id in userIds)
+                await _hub.Clients.User(id).SendAsync("notify", new { title, body, url });
+            await _hub.Clients.All.SendAsync("dataChanged", CategoryFromUrl(url));
+        }
+        catch { /* البث اللحظي مكمّل — لا يجب أن يُعطّل الإجراء الأساسي */ }
+    }
+
+    /// <summary>يستنتج فئة الحدث من الرابط لتوجيه تحديث الشاشات المعنية فقط.</summary>
+    public static string CategoryFromUrl(string? url)
+    {
+        if (string.IsNullOrEmpty(url)) return "general";
+        if (url.Contains("/Contracts")) return "contracts";
+        if (url.Contains("/Tenders")) return "tenders";
+        if (url.Contains("/Logistics") || url.Contains("/Shipping")) return "logistics";
+        if (url.Contains("/Auctions") || url.Contains("PendingAuctions")) return "auctions";
+        return "general";
     }
 
     public Task<int> UnreadCountAsync(string userId) =>
@@ -109,6 +139,9 @@ public class NotificationService
     /// </summary>
     public async Task NotifyAdminsAsync(string title, string body, string? url = null)
     {
+        // بث لحظي لتحديث لوحات الإدارة حتى لأحداث لا مستلم شخصي لها (دخول/تسجيل/إضافة محصول)
+        try { await _hub.Clients.All.SendAsync("dataChanged", CategoryFromUrl(url)); } catch { }
+
         try
         {
             var subscribers = await _db.NotificationEmails.AsNoTracking()

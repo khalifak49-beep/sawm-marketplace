@@ -78,6 +78,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
 });
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddSignalR();   // البث اللحظي للأحداث لكل الشاشات
 
 var app = builder.Build();
 
@@ -101,6 +102,8 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.MapHub<Sawm.Web.Hubs.LiveHub>("/hubs/live");
 
 // تهيئة قاعدة البيانات والبيانات التجريبية عند الإقلاع
 await DbSeeder.SeedAsync(app.Services);

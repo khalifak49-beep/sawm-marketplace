@@ -164,10 +164,7 @@
                 <a class="icon-btn" asp-controller="Notifications" asp-action="Index"
                    aria-label="الإشعارات@(unread > 0 ? $" — {unread} غير مقروء" : "")">
                     @Icons.Render("bell")
-                    @if (unread > 0)
-                    {
-                        <span class="notif-dot rtl-num">@unread</span>
-                    }
+                    <span class="notif-dot rtl-num" id="notifDot" data-count="@unread" style="@(unread > 0 ? "" : "display:none")">@unread</span>
                 </a>
 
                 <div class="dropdown">
@@ -269,5 +266,7 @@ else
 <script src="~/js/site.js" asp-append-version="true"></script>
 @await RenderSectionAsync("Scripts", required: false)
 <script src="~/js/motion.js" asp-append-version="true"></script>
+<script src="~/lib/signalr/signalr.min.js"></script>
+<script src="~/js/live.js" asp-append-version="true"></script>
 </body>
 </html>
