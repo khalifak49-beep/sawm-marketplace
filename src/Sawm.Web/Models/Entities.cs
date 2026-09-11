@@ -621,6 +621,24 @@ public class Notification
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 }
 
+/// <summary>إعدادات مظهر المنصة (صف واحد) — يضبطها الأدمن من استوديو المظهر</summary>
+public class ThemeSettings
+{
+    public int Id { get; set; } = 1;
+    [MaxLength(9)] public string Primary { get; set; } = "#15803D";
+    [MaxLength(9)] public string Secondary { get; set; } = "#22C55E";
+    [MaxLength(9)] public string Accent { get; set; } = "#A16207";
+    public int RadiusCard { get; set; } = 18;
+    public int RadiusButton { get; set; } = 10;
+    public int RadiusIcon { get; set; } = 14;
+    public int RadiusControl { get; set; } = 10;
+    public int IconScale { get; set; } = 100;      // نسبة مئوية
+    public int GlassOpacity { get; set; } = 60;     // نسبة مئوية
+    public int GlassBlur { get; set; } = 16;        // px
+    [MaxLength(500)] public string? HeaderImageUrl { get; set; }
+    [MaxLength(20)] public string BgEffect { get; set; } = "mesh"; // mesh | drift | meteors | bubbles | none
+}
+
 /// <summary>عنوان بريد إضافي تصله نسخة من كل إشعارات المنصة (يديره الأدمن)</summary>
 public class NotificationEmail
 {

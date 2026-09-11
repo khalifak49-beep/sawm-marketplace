@@ -1,0 +1,252 @@
+@model ThemeSettings
+@{
+    ViewData["Title"] = "استوديو المظهر";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <h5 class="fw-bold mb-1">@Icons.Render("settings", 18) استوديو المظهر</h5>
+        <div class="text-muted small">اضبط ألوان المنصة وزواياها وأيقوناتها وخلفيتها — بمعاينة حيّة، ثم احفظ لتطبيقها على الجميع.</div>
+    </div>
+    <form asp-action="Reset" method="post" data-confirm="إعادة المظهر إلى الوضع الافتراضي؟">
+        @Html.AntiForgeryToken()
+        <button class="btn btn-outline-secondary btn-sm">إعادة الافتراضي</button>
+    </form>
+</div>
+
+<form asp-action="Save" method="post" id="themeForm">
+    @Html.AntiForgeryToken()
+    <div class="row g-3">
+        <!-- ── الضوابط ── -->
+        <div class="col-lg-5">
+            <div class="card mb-3">
+                <div class="card-header">الألوان — دمج لأي مناسبة</div>
+                <div class="card-body">
+                    <div class="mb-2 small text-muted">قوالب جاهزة:</div>
+                    <div class="d-flex flex-wrap gap-2 mb-3" id="presets">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-p="#15803D" data-s="#22C55E" data-a="#A16207">زراعي (الافتراضي)</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-p="#B91C1C" data-s="#15803D" data-a="#CA8A04">وطني عُمان</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-p="#7C3AED" data-s="#C026D3" data-a="#CA8A04">رمضان</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-p="#B45309" data-s="#CA8A04" data-a="#15803D">العيد</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-p="#0E7490" data-s="#0891B2" data-a="#15803D">بحري</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-p="#1E3A8A" data-s="#2563EB" data-a="#0EA5E9">أزرق مؤسسي</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-p="#334155" data-s="#0F766E" data-a="#CA8A04">محايد داكن</button>
+                    </div>
+
+                    @{
+                        (string name, string label, string val)[] colors = new[] {
+                            ("Primary", "اللون الأساسي", Model.Primary),
+                            ("Secondary", "الثانوي (للتدرّج)", Model.Secondary),
+                            ("Accent", "المميّز (النجوم)", Model.Accent),
+                        };
+                    }
+                    @foreach (var c in colors)
+                    {
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <label class="form-label mb-0" style="width:130px">@c.label</label>
+                            <input type="color" name="@c.name" id="c_@c.name" value="@c.val"
+                                   class="form-control form-control-sm" style="width:52px;padding:3px;min-height:38px" />
+                            <input type="text" id="t_@c.name" value="@c.val" dir="ltr"
+                                   class="form-control form-control-sm" style="max-width:120px" />
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">الزوايا والأيقونات</div>
+                <div class="card-body">
+                    @{
+                        (string name, string label, int val, int min, int max, string unit)[] ranges = new[] {
+                            ("RadiusCard", "زوايا البطاقات", Model.RadiusCard, 0, 36, "px"),
+                            ("RadiusButton", "زوايا الأزرار", Model.RadiusButton, 0, 30, "px"),
+                            ("RadiusIcon", "زوايا الأيقونات", Model.RadiusIcon, 0, 30, "px"),
+                            ("RadiusControl", "زوايا الحقول/القوائم", Model.RadiusControl, 0, 30, "px"),
+                            ("IconScale", "حجم الأيقونات", Model.IconScale, 70, 160, "%"),
+                        };
+                    }
+                    @foreach (var r in ranges)
+                    {
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <span>@r.label</span>
+                                <span class="rtl-num text-muted"><span id="v_@r.name">@r.val</span>@r.unit</span>
+                            </div>
+                            <input type="range" name="@r.name" id="r_@r.name" min="@r.min" max="@r.max" value="@r.val"
+                                   class="form-range" />
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">الزجاج والخلفية</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1"><span>شفافية الزجاج</span>
+                            <span class="rtl-num text-muted"><span id="v_GlassOpacity">@Model.GlassOpacity</span>%</span></div>
+                        <input type="range" name="GlassOpacity" id="r_GlassOpacity" min="25" max="95" value="@Model.GlassOpacity" class="form-range" />
+                    </div>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1"><span>قوة التمويه</span>
+                            <span class="rtl-num text-muted"><span id="v_GlassBlur">@Model.GlassBlur</span>px</span></div>
+                        <input type="range" name="GlassBlur" id="r_GlassBlur" min="0" max="30" value="@Model.GlassBlur" class="form-range" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">خلفية متحركة</label>
+                        <select name="BgEffect" id="s_BgEffect" class="form-select">
+                            <option value="mesh">ميش ثابت (الافتراضي)</option>
+                            <option value="drift">انسياب بطيء</option>
+                            <option value="meteors">نيازك</option>
+                            <option value="bubbles">فقاعات صاعدة</option>
+                            <option value="none">بدون</option>
+                        </select>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label">صورة الهيدر (رابط)</label>
+                        <input type="url" name="HeaderImageUrl" id="s_HeaderImageUrl" value="@Model.HeaderImageUrl" dir="ltr"
+                               class="form-control" placeholder="https://…/banner.jpg" />
+                        <div class="form-text">تظهر خلف الشريط العلوي مع تعتيم يحافظ على وضوح النص.</div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-green w-100 btn-lg">حفظ وتطبيق على المنصة</button>
+        </div>
+
+        <!-- ── المعاينة الحيّة ── -->
+        <div class="col-lg-7">
+            <div class="card" style="position:sticky; top:88px">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>معاينة حيّة</span>
+                    <span class="badge bg-success">تتحدّث فوراً</span>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="stat-ico">@Icons.Render("gavel", 22)</span>
+                        <span class="stat-ico">@Icons.Render("wallet", 22)</span>
+                        <span class="stat-ico">@Icons.Render("handshake", 22)</span>
+                        <span class="stat-ico gold">@Icons.Render("star", 22)</span>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6"><div class="stat-card"><span class="stat-ico">@Icons.Render("chart", 20)</span>
+                            <div><div class="stat-value">128</div><div class="stat-label">مزاد نشط</div></div></div></div>
+                        <div class="col-6"><div class="stat-card"><span class="stat-ico gold">@Icons.Render("trending-up", 20)</span>
+                            <div><div class="stat-value">45,900</div><div class="stat-label">القيمة المتداولة</div></div></div></div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button type="button" class="btn btn-green">زر أساسي</button>
+                        <button type="button" class="btn btn-outline-success">زر ثانوي</button>
+                        <button type="button" class="btn btn-sm btn-green">صغير</button>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="badge bg-success">نشط</span>
+                        <span class="badge bg-warning">بانتظار</span>
+                        <span class="badge bg-info">جديد</span>
+                        <span class="role-chip">@Icons.Render("user", 13) وسيط</span>
+                        <span class="rating-chip badge">@Icons.Render("star", 12) 4.8</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">حقل إدخال</label>
+                        <input class="form-control" placeholder="نموذج حقل" />
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th>المحصول</th><th>الكمية</th><th>السعر</th></tr></thead>
+                            <tbody>
+                                <tr><td>طماطم</td><td class="rtl-num">8 طن</td><td class="rtl-num">350</td></tr>
+                                <tr><td>تمور</td><td class="rtl-num">15 طن</td><td class="rtl-num">3,100</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    (function () {
+        var root = document.documentElement, body = document.body;
+
+        function setColor(name) {
+            var picker = document.getElementById('c_' + name), text = document.getElementById('t_' + name);
+            var v = picker.value;
+            text.value = v;
+            root.style.setProperty('--' + name.toLowerCase(), v);
+        }
+        ['Primary', 'Secondary', 'Accent'].forEach(function (n) {
+            var picker = document.getElementById('c_' + n), text = document.getElementById('t_' + n);
+            picker.addEventListener('input', function () { setColor(n); });
+            text.addEventListener('change', function () {
+                if (/^#[0-9a-fA-F]{6}$/.test(text.value)) { picker.value = text.value; setColor(n); }
+            });
+        });
+
+        // القوالب الجاهزة
+        document.querySelectorAll('#presets [data-p]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                document.getElementById('c_Primary').value = b.dataset.p; setColor('Primary');
+                document.getElementById('c_Secondary').value = b.dataset.s; setColor('Secondary');
+                document.getElementById('c_Accent').value = b.dataset.a; setColor('Accent');
+            });
+        });
+
+        // المنزلقات
+        var rangeVar = {
+            RadiusCard: ['--r-card', 'px'], RadiusButton: ['--r-btn', 'px'], RadiusIcon: ['--r-icon', 'px'],
+            RadiusControl: ['--r-control', 'px'], IconScale: ['--icon-scale', 'scale'],
+            GlassOpacity: ['--glass-opacity', 'opacity'], GlassBlur: ['--glass-blur-amount', 'px']
+        };
+        Object.keys(rangeVar).forEach(function (name) {
+            var el = document.getElementById('r_' + name); if (!el) return;
+            el.addEventListener('input', function () {
+                var out = document.getElementById('v_' + name); if (out) out.textContent = el.value;
+                var spec = rangeVar[name], v = el.value;
+                if (spec[1] === 'px') root.style.setProperty(spec[0], v + 'px');
+                else if (spec[1] === 'scale') root.style.setProperty(spec[0], (v / 100));
+                else if (spec[1] === 'opacity') root.style.setProperty(spec[0], (v / 100));
+            });
+        });
+
+        // الخلفية المتحركة
+        var sel = document.getElementById('s_BgEffect');
+        sel.value = '@Model.BgEffect';
+        function applyBg() {
+            var v = sel.value;
+            body.classList.toggle('fx-drift', v === 'drift');
+            var old = document.getElementById('bgFxPreview'); if (old) old.remove();
+            if (v === 'meteors' || v === 'bubbles') {
+                var d = document.createElement('div');
+                d.id = 'bgFxPreview'; d.className = 'bg-fx bg-fx-' + v; d.setAttribute('aria-hidden', 'true');
+                var html = '';
+                for (var i = 0; i < 14; i++) {
+                    html += '<span class="meteor" style="left:' + ((i * 7 + 5) % 100) + '%;animation-delay:' + (i * 0.7) + 's;animation-duration:' + (6 + (i % 5) * 1.6) + 's"></span>';
+                }
+                d.innerHTML = html; body.appendChild(d);
+            }
+        }
+        sel.addEventListener('change', applyBg);
+
+        // صورة الهيدر
+        var hdr = document.getElementById('s_HeaderImageUrl');
+        function applyHeader() {
+            var tb = document.querySelector('.topbar'); if (!tb) return;
+            var u = hdr.value.trim();
+            if (/^https?:\/\/|^\//.test(u) && !/['"()<>;]/.test(u)) {
+                tb.style.backgroundImage = "linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.72)),url('" + u + "')";
+                tb.style.backgroundSize = 'cover'; tb.style.backgroundPosition = 'center';
+            } else { tb.style.backgroundImage = ''; }
+        }
+        hdr.addEventListener('input', applyHeader);
+
+        applyBg();
+    })();
+</script>
+}

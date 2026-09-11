@@ -1,8 +1,12 @@
 @using Microsoft.EntityFrameworkCore
 @using Sawm.Web.Data
+@using Sawm.Web.Services
 @inject SawmDbContext Db
 @inject UserManager<ApplicationUser> UserManager
+@inject ThemeService Theme
 @{
+    var theme = await Theme.GetAsync();
+    var themeCss = ThemeService.BuildCss(theme);
     var uid = UserManager.GetUserId(User);
     var signedIn = User.Identity?.IsAuthenticated == true && uid != null;
 
@@ -50,14 +54,28 @@
     <title>@ViewData["Title"] — منصة ساوم</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style id="themeVars">@Html.Raw(themeCss)</style>
     <noscript>
         <!-- بدون جافاسكربت لا تُرفع ستارة الانتقال — أخفِها كي لا تحجب الصفحة -->
         <style>#pageFade { display: none !important; }</style>
     </noscript>
 </head>
-<body>
+<body class="@(theme.BgEffect == "drift" ? "fx-drift" : "")">
 <!-- ستارة الانتقال بين الشاشات — تُرفع فور تحميل الصفحة -->
 <div id="pageFade" aria-hidden="true"><span class="pf-mark">س</span></div>
+
+@if (theme.BgEffect == "meteors" || theme.BgEffect == "bubbles")
+{
+    <div class="bg-fx bg-fx-@theme.BgEffect" aria-hidden="true">
+        @for (var i = 0; i < 14; i++)
+        {
+            var left = (i * 7 + 5) % 100;
+            var delay = (i * 0.7).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var dur = (6 + (i % 5) * 1.6).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            <span class="meteor" style="left:@(left)%; animation-delay:@(delay)s; animation-duration:@(dur)s"></span>
+        }
+    </div>
+}
 
 @if (signedIn)
 {
@@ -133,6 +151,9 @@
                     </a>
                     <a class="nav-link-s @OnAction("Admin","NotificationEmails")" asp-controller="Admin" asp-action="NotificationEmails">
                         @Icons.Render("mail") <span>مستلمو الإشعارات</span>
+                    </a>
+                    <a class="nav-link-s @On("Theme")" asp-controller="Theme" asp-action="Index">
+                        @Icons.Render("settings") <span>استوديو المظهر</span>
                     </a>
                 }
             </nav>

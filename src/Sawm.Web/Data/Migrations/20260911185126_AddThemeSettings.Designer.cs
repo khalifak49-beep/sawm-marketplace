@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Sawm.Web.Data;
 
@@ -11,9 +12,11 @@ using Sawm.Web.Data;
 namespace Sawm.Web.Data.Migrations
 {
     [DbContext(typeof(SawmDbContext))]
-    partial class SawmDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260911185126_AddThemeSettings")]
+    partial class AddThemeSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

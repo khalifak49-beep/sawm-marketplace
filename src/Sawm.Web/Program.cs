@@ -52,6 +52,7 @@ builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<ContractService>();
 builder.Services.AddScoped<MatchingService>();
 builder.Services.AddScoped<BranchService>();
+builder.Services.AddScoped<ThemeService>();
 
 // البريد الإلكتروني: إعدادات + طابور خلفي + مُرسِل (SMTP محلياً أو Brevo/HTTPS على السحابة)
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));

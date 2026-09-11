@@ -51,52 +51,61 @@
    لون واحد للعلامة (الأخضر) لتناسق تام؛ الذهبي محصور بالتقييم فقط.
    ─────────────────────────────────────────────────────────────── */
 :root {
-    /* سُلّم الأخضر — لون العلامة الوحيد */
-    --primary:        #15803D;
-    --primary-600:    #16A34A;
-    --primary-700:    #15803D;
-    --primary-800:    #166534;
-    --primary-900:    #14532D;
-    --primary-300:    #86EFAC;
+    /* ── مدخلات المظهر (يضبطها استوديو المظهر؛ كل شيء يشتقّ منها) ── */
+    --primary:        #15803D;   /* اللون الأساسي للعلامة */
+    --secondary:      #22C55E;   /* شريك التدرّج (للدمج) */
+    --accent:         #A16207;   /* لون مميّز — للتقييم/النجوم */
+    --r-card:         18px;      /* زوايا البطاقات/المربعات */
+    --r-btn:          10px;      /* زوايا الأزرار */
+    --r-icon:         14px;      /* زوايا شرائح الأيقونات */
+    --r-control:      10px;      /* زوايا الحقول والقوائم المنسدلة */
+    --icon-scale:     1;         /* حجم الأيقونات (معامل) */
+    --glass-opacity:  .60;       /* شفافية الزجاج */
+    --glass-blur-amount: 16px;   /* قوة تمويه الزجاج */
+
+    /* درجات الأساسي — مشتقّة تلقائياً من --primary لتناسق تام */
+    --primary-600:    color-mix(in oklab, var(--primary), white 10%);
+    --primary-700:    var(--primary);
+    --primary-800:    color-mix(in oklab, var(--primary), black 16%);
+    --primary-900:    color-mix(in oklab, var(--primary), black 34%);
+    --primary-300:    color-mix(in oklab, var(--primary), white 45%);
     --on-primary:     #FFFFFF;
-    --secondary:      #22C55E;
-    --accent:         #A16207;   /* ذهبي — للتقييم/النجوم فقط */
-    --accent-hover:   #854D0E;
+    --accent-hover:   color-mix(in oklab, var(--accent), black 20%);
     --on-accent:      #FFFFFF;
 
-    --bg:             #EFF9F2;   /* سطح فاتح للحالات (hover/زيبرا) */
+    --bg:             color-mix(in srgb, var(--primary) 8%, #ffffff);
     --fg:             #0F3D24;
     --card-fg:        #0F3D24;
-    --muted:          #E1F0E7;
+    --muted:          color-mix(in srgb, var(--primary) 12%, #ffffff);
     --muted-fg:       #5B7268;
-    --border:         rgba(21, 128, 61, .20);
-    --border-soft:    rgba(21, 128, 61, .10);
+    --border:         color-mix(in srgb, var(--primary) 20%, transparent);
+    --border-soft:    color-mix(in srgb, var(--primary) 10%, transparent);
     --destructive:    #DC2626;
     --warning:        #B45309;
     --info:           #0369A1;
-    --ring:           #15803D;
+    --ring:           var(--primary);
 
     /* ── الزجاج الأبيض ── */
-    --card:           rgba(255, 255, 255, .60);   /* السطح الزجاجي الأساسي */
-    --glass:          rgba(255, 255, 255, .60);
-    --glass-strong:   rgba(255, 255, 255, .80);   /* للأشرطة اللاصقة */
-    --glass-solid:    rgba(255, 255, 255, .92);   /* حيث يلزم تعتيم أعلى */
+    --card:           rgb(255 255 255 / var(--glass-opacity));
+    --glass:          rgb(255 255 255 / var(--glass-opacity));
+    --glass-strong:   rgb(255 255 255 / calc(var(--glass-opacity) + .20));
+    --glass-solid:    rgb(255 255 255 / calc(var(--glass-opacity) + .32));
     --glass-border:   rgba(255, 255, 255, .70);
-    --glass-blur:     saturate(160%) blur(16px);
+    --glass-blur:     saturate(160%) blur(var(--glass-blur-amount));
 
-    /* ── التدرّجات الخضراء الانسيابية ── */
-    --grad-green:      linear-gradient(135deg, #0F3D21 0%, #14532D 42%, #15803D 100%);
-    --grad-green-soft: linear-gradient(135deg, #15803D 0%, #22C55E 120%);
-    --grad-sidebar:    linear-gradient(165deg, #0B3B21 0%, #124A2A 52%, #15803D 128%);
-    --grad-sheen:      linear-gradient(135deg, #16A34A 0%, #15803D 100%);
+    /* ── التدرّجات — مشتقّة من الأساسي والثانوي (دمج الألوان) ── */
+    --grad-green:      linear-gradient(135deg, var(--primary-900) 0%, var(--primary-800) 42%, var(--primary) 100%);
+    --grad-green-soft: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 120%);
+    --grad-sidebar:    linear-gradient(165deg, color-mix(in oklab, var(--primary), black 45%) 0%, var(--primary-800) 52%, var(--primary) 130%);
+    --grad-sheen:      linear-gradient(135deg, var(--primary-600) 0%, var(--primary) 100%);
 
-    /* خلفية المنصة — ميش أخضر انسيابي فاتح يظهر خلف الزجاج */
+    /* خلفية المنصة — ميش انسيابي يتكيّف مع اللونين */
     --app-bg:
-        radial-gradient(58% 58% at 10% 4%,  rgba(34,197,94,.22),  transparent 60%),
-        radial-gradient(52% 52% at 94% 10%, rgba(22,163,74,.18),  transparent 60%),
-        radial-gradient(60% 62% at 82% 98%, rgba(21,128,61,.16),  transparent 62%),
-        radial-gradient(40% 40% at 30% 80%, rgba(134,239,172,.20), transparent 60%),
-        linear-gradient(180deg, #E7F6EE 0%, #F2FBF6 100%);
+        radial-gradient(58% 58% at 10% 4%,  color-mix(in srgb, var(--secondary) 26%, transparent), transparent 60%),
+        radial-gradient(52% 52% at 94% 10%, color-mix(in srgb, var(--primary) 22%, transparent),  transparent 60%),
+        radial-gradient(60% 62% at 82% 98%, color-mix(in srgb, var(--primary) 18%, transparent),  transparent 62%),
+        radial-gradient(40% 40% at 30% 80%, color-mix(in srgb, var(--secondary) 20%, transparent), transparent 60%),
+        linear-gradient(180deg, color-mix(in srgb, var(--primary) 7%, #ffffff) 0%, color-mix(in srgb, var(--primary) 3%, #ffffff) 100%);
 
     /* مقياس المسافات */
     --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
@@ -107,7 +116,7 @@
     --shadow-sm: 0 1px 2px rgba(15, 61, 36, .06);
     --shadow-md: 0 8px 24px rgba(15, 61, 36, .10), 0 2px 6px rgba(15, 61, 36, .05);
     --shadow-lg: 0 22px 50px rgba(15, 61, 36, .16);
-    --shadow-brand: 0 10px 28px rgba(21, 128, 61, .32);
+    --shadow-brand: 0 10px 28px color-mix(in srgb, var(--primary) 32%, transparent);
     --shadow-glass: 0 10px 34px rgba(15, 61, 36, .12), inset 0 1px 0 rgba(255, 255, 255, .55);
 
     --t-fast: 150ms cubic-bezier(.4, 0, .2, 1);
@@ -115,6 +124,9 @@
 
     --sidebar-w: 250px;
 }
+
+/* حجم الأيقونات — معامل قابل للضبط من استوديو المظهر */
+.icon { transform: scale(var(--icon-scale, 1)); transform-origin: center; }
 
 /* ── الأساسيات ──────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
@@ -180,7 +192,7 @@ td.rtl-num, th.rtl-num { display: table-cell; }
 
 .brand-mark {
     width: 40px; height: 40px; flex: none;
-    border-radius: var(--r-md);
+    border-radius: var(--r-icon);
     background: var(--grad-sheen);
     display: grid; place-items: center;
     font-weight: 700; font-size: 1.15rem;
@@ -249,7 +261,7 @@ td.rtl-num, th.rtl-num { display: table-cell; }
 
 .icon-btn {
     width: 42px; height: 42px;
-    border-radius: var(--r-md);
+    border-radius: var(--r-icon);
     border: 1px solid var(--glass-border);
     background: var(--glass);
     backdrop-filter: var(--glass-blur);
@@ -286,7 +298,7 @@ td.rtl-num, th.rtl-num { display: table-cell; }
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--glass-border);
-    border-radius: var(--r-lg);
+    border-radius: var(--r-card);
     box-shadow: var(--shadow-glass);
 }
 
@@ -296,7 +308,7 @@ td.rtl-num, th.rtl-num { display: table-cell; }
     font-weight: 700; font-size: .95rem;
     color: var(--primary-900);
     padding: var(--space-4) var(--space-4);
-    border-radius: var(--r-lg) var(--r-lg) 0 0 !important;
+    border-radius: var(--r-card) var(--r-card) 0 0 !important;
 }
 
 .card-body { padding: var(--space-4); }
@@ -308,7 +320,7 @@ td.rtl-num, th.rtl-num { display: table-cell; }
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--glass-border);
-    border-radius: var(--r-lg);
+    border-radius: var(--r-card);
     padding: var(--space-4);
     height: 100%;
     display: flex; align-items: flex-start; gap: var(--space-3);
@@ -325,7 +337,7 @@ td.rtl-num, th.rtl-num { display: table-cell; }
 /* شرائح الأيقونات — تدرّج أخضر انسيابي بأيقونة بيضاء */
 .stat-ico {
     width: 44px; height: 44px; flex: none;
-    border-radius: var(--r-md);
+    border-radius: var(--r-icon);
     background: var(--grad-sheen);
     color: #fff;
     display: grid; place-items: center;
@@ -342,7 +354,7 @@ td.rtl-num, th.rtl-num { display: table-cell; }
 
 /* ── الأزرار ────────────────────────────────────────────────── */
 .btn {
-    border-radius: var(--r-sm);
+    border-radius: var(--r-btn);
     font-weight: 600; font-size: .9rem;
     padding: 9px 16px;
     min-height: 40px;
@@ -430,7 +442,7 @@ td.rtl-num, th.rtl-num { display: table-cell; }
 .table-hover tbody tr:hover { background: rgba(21,128,61,.06); }
 .table-success { background: rgba(34,197,94,.10) !important; }
 .table-light { background: rgba(255,255,255,.4) !important; }
-.table-responsive { border-radius: 0 0 var(--r-lg) var(--r-lg); }
+.table-responsive { border-radius: 0 0 var(--r-card) var(--r-card); }
 
 /* ── النماذج ────────────────────────────────────────────────── */
 .form-label { font-weight: 600; font-size: .84rem; color: var(--primary-900); margin-bottom: 5px; }
@@ -438,7 +450,7 @@ td.rtl-num, th.rtl-num { display: table-cell; }
 
 .form-control, .form-select {
     border: 1px solid var(--glass-border);
-    border-radius: var(--r-sm);
+    border-radius: var(--r-control);
     padding: 9px 12px;
     font-size: .92rem;
     min-height: 42px;
@@ -506,7 +518,7 @@ td.rtl-num, th.rtl-num { display: table-cell; }
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--glass-border);
-    border-radius: var(--r-lg);
+    border-radius: var(--r-card);
     padding: var(--space-5);
     height: 100%;
     box-shadow: var(--shadow-glass);
@@ -514,7 +526,7 @@ td.rtl-num, th.rtl-num { display: table-cell; }
 }
 .pillar:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); border-color: var(--border); }
 .pillar .ico {
-    width: 46px; height: 46px; border-radius: var(--r-md);
+    width: 46px; height: 46px; border-radius: var(--r-icon);
     background: var(--grad-green-soft); color: #fff;
     display: grid; place-items: center;
     margin-bottom: var(--space-3);
@@ -789,7 +801,7 @@ td.rtl-num, th.rtl-num { display: table-cell; }
     background: var(--glass-solid);
     backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
     border: 1px solid var(--glass-border);
-    border-radius: var(--r-lg);
+    border-radius: var(--r-card);
     box-shadow: var(--shadow-lg);
     padding: var(--space-5);
     transform: translateY(10px) scale(.97);
@@ -798,7 +810,7 @@ td.rtl-num, th.rtl-num { display: table-cell; }
 .cx-overlay.show .cx-modal { transform: none; }
 .cx-head { display: flex; gap: var(--space-3); align-items: flex-start; }
 .cx-icon {
-    width: 46px; height: 46px; flex: none; border-radius: var(--r-md);
+    width: 46px; height: 46px; flex: none; border-radius: var(--r-icon);
     background: var(--grad-sheen); color: #fff;
     display: grid; place-items: center;
     box-shadow: 0 6px 16px rgba(21, 128, 61, .30);
@@ -822,3 +834,47 @@ td.rtl-num, th.rtl-num { display: table-cell; }
     animation: heroDrift 16s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) { .cta-band { animation: none !important; } }
+
+/* ── القوائم المنسدلة تتبع زاوية الحقول ───────────────────────── */
+.dropdown-menu { border-radius: var(--r-control); border: 1px solid var(--glass-border); }
+.dropdown-item { border-radius: calc(var(--r-control) - 4px); }
+
+/* ── خلفيات متحركة (استوديو المظهر) ───────────────────────────── */
+.bg-fx { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+
+/* نيازك تنهمر قطريّاً */
+.bg-fx-meteors .meteor {
+    position: absolute; top: -12%;
+    width: 2px; height: 90px; border-radius: 2px;
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--primary) 75%, white), transparent);
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--primary) 55%, transparent));
+    opacity: 0;
+    animation: meteorFall linear infinite;
+}
+@keyframes meteorFall {
+    0%   { transform: translate(0, 0) rotate(35deg); opacity: 0; }
+    8%   { opacity: .65; }
+    100% { transform: translate(-115vw, 118vh) rotate(35deg); opacity: 0; }
+}
+
+/* فقاعات ناعمة تصعد */
+.bg-fx-bubbles .meteor {
+    position: absolute; bottom: -8%;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--secondary) 55%, white), color-mix(in srgb, var(--primary) 30%, transparent));
+    opacity: 0; animation: bubbleRise linear infinite;
+}
+@keyframes bubbleRise {
+    0%   { transform: translateY(0) scale(.7); opacity: 0; }
+    12%  { opacity: .5; }
+    100% { transform: translateY(-115vh) scale(1.1); opacity: 0; }
+}
+
+/* انسياب بطيء للخلفية */
+body.fx-drift { background-size: 200% 200% !important; animation: bgDrift 24s ease-in-out infinite; }
+@keyframes bgDrift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .bg-fx { display: none !important; }
+    body.fx-drift { animation: none !important; }
+}

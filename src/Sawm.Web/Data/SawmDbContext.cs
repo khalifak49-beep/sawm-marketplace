@@ -24,6 +24,7 @@ public class SawmDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Rating> Ratings => Set<Rating>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<NotificationEmail> NotificationEmails => Set<NotificationEmail>();
+    public DbSet<ThemeSettings> ThemeSettings => Set<ThemeSettings>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
