@@ -934,8 +934,9 @@ body.fx-drift { background-size: 200% 200% !important; animation: bgDrift 24s ea
 }
 
 /* ── علم عُمان داخل الهيدر والعلامة ─────────────────────────────── */
-.topbar { position: relative; overflow: hidden; }
-.topbar-flag { flex: 1 1 auto; min-width: 0; height: 46px; margin-inline: 14px; align-self: center; }
+/* لا نضع overflow:hidden على .topbar كي لا تُقصّ قائمة الحساب المنسدلة،
+   ونُبقي التثبيت (sticky) من التعريف الأساسي. القصّ يقتصر على شريط العلم. */
+.topbar-flag { flex: 1 1 auto; min-width: 0; height: 46px; margin-inline: 14px; align-self: center; overflow: hidden; }
 .topbar-flag .oman-flag { height: 100%; }
 .brand { position: relative; }
 .brand-emblem { margin-inline-start: auto; }

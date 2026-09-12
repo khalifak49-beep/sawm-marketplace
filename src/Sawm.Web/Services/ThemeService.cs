@@ -76,8 +76,10 @@ public class ThemeService
             "}";
 
         if (!string.IsNullOrWhiteSpace(t.HeaderImageUrl))
-            css += ".topbar{background-image:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.72))," +
-                   $"url('{t.HeaderImageUrl}');background-size:cover;background-position:center;}}";
+            // تعتيم أقوى قليلاً ليبقى النص واضحاً، وإخفاء علم الشريط العلوي كي لا يتكرّر التموّج
+            css += ".topbar{background-image:linear-gradient(rgba(255,255,255,.66),rgba(255,255,255,.82))," +
+                   $"url('{t.HeaderImageUrl}');background-size:cover;background-position:center;}}" +
+                   ".topbar .topbar-flag{display:none !important;}"; // !important لتجاوز d-md-block من Bootstrap
 
         return css;
     }
