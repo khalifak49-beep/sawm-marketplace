@@ -840,34 +840,47 @@ td.rtl-num, th.rtl-num { display: table-cell; }
 .dropdown-item { border-radius: calc(var(--r-control) - 4px); }
 
 /* ── خلفيات متحركة (استوديو المظهر) ───────────────────────────── */
+/* المتغيّرات: --fx-color لون الجُسيم، --fx-size حجمه، --fx-dur مدّته */
 .bg-fx { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
-
-/* نيازك تنهمر قطريّاً */
-.bg-fx-meteors .meteor {
-    position: absolute; top: -12%;
-    width: 2px; height: 90px; border-radius: 2px;
-    background: linear-gradient(to bottom, color-mix(in srgb, var(--primary) 75%, white), transparent);
-    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--primary) 55%, transparent));
-    opacity: 0;
-    animation: meteorFall linear infinite;
+.bg-fx .meteor {
+    position: absolute; opacity: 0;
+    animation-duration: var(--fx-dur, 8s);
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
 }
+/* اتجاه الحركة حسب التأثير */
+.bg-fx-meteors .meteor { top: -14%; animation-name: meteorFall; }
+.bg-fx-bubbles .meteor { bottom: -10%; animation-name: bubbleRise; }
+
+/* الأشكال */
+.fx-streak .meteor {
+    width: 2px; height: var(--fx-size, 90px); border-radius: 2px;
+    background: linear-gradient(to bottom, var(--fx-color, #86EFAC), transparent);
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--fx-color, #86EFAC) 55%, transparent));
+}
+.fx-dot .meteor {
+    width: max(5px, calc(var(--fx-size, 90px) * .16));
+    height: max(5px, calc(var(--fx-size, 90px) * .16));
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff, var(--fx-color, #86EFAC));
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--fx-color, #86EFAC) 60%, transparent));
+}
+.fx-star .meteor {
+    color: var(--fx-color, #86EFAC); line-height: 1;
+    font-size: max(10px, calc(var(--fx-size, 90px) * .26));
+    filter: drop-shadow(0 0 8px color-mix(in srgb, var(--fx-color, #86EFAC) 55%, transparent));
+}
+.fx-star .meteor::before { content: "✦"; }
+
 @keyframes meteorFall {
     0%   { transform: translate(0, 0) rotate(35deg); opacity: 0; }
-    8%   { opacity: .65; }
+    8%   { opacity: .7; }
     100% { transform: translate(-115vw, 118vh) rotate(35deg); opacity: 0; }
-}
-
-/* فقاعات ناعمة تصعد */
-.bg-fx-bubbles .meteor {
-    position: absolute; bottom: -8%;
-    width: 26px; height: 26px; border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--secondary) 55%, white), color-mix(in srgb, var(--primary) 30%, transparent));
-    opacity: 0; animation: bubbleRise linear infinite;
 }
 @keyframes bubbleRise {
     0%   { transform: translateY(0) scale(.7); opacity: 0; }
-    12%  { opacity: .5; }
-    100% { transform: translateY(-115vh) scale(1.1); opacity: 0; }
+    12%  { opacity: .6; }
+    100% { transform: translateY(-118vh) scale(1.12); opacity: 0; }
 }
 
 /* انسياب بطيء للخلفية */

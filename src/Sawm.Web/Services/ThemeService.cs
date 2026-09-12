@@ -43,6 +43,11 @@ public class ThemeService
         t.GlassBlur = Clamp(s.GlassBlur, 0, 30);
         t.HeaderImageUrl = SanitizeUrl(s.HeaderImageUrl);
         t.BgEffect = s.BgEffect is "mesh" or "drift" or "meteors" or "bubbles" or "none" ? s.BgEffect : "mesh";
+        t.FxShape = s.FxShape is "streak" or "dot" or "star" ? s.FxShape : "streak";
+        t.FxColor = Color(s.FxColor, "#86EFAC");
+        t.FxSize = Clamp(s.FxSize, 20, 180);
+        t.FxCount = Clamp(s.FxCount, 3, 45);
+        t.FxSpeed = Clamp(s.FxSpeed, 3, 24);
 
         await _db.SaveChangesAsync();
         _cache = null; // إبطال المؤقت — يُعاد التحميل في الطلب التالي
@@ -61,6 +66,7 @@ public class ThemeService
             $"--icon-scale:{(t.IconScale / 100.0).ToString("0.##", inv)};" +
             $"--glass-opacity:{(t.GlassOpacity / 100.0).ToString("0.##", inv)};" +
             $"--glass-blur-amount:{t.GlassBlur}px;" +
+            $"--fx-color:{t.FxColor};--fx-size:{t.FxSize}px;--fx-dur:{t.FxSpeed}s;" +
             "}";
 
         if (!string.IsNullOrWhiteSpace(t.HeaderImageUrl))

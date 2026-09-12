@@ -66,12 +66,13 @@
 
 @if (theme.BgEffect == "meteors" || theme.BgEffect == "bubbles")
 {
-    <div class="bg-fx bg-fx-@theme.BgEffect" aria-hidden="true">
-        @for (var i = 0; i < 14; i++)
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+    <div class="bg-fx bg-fx-@theme.BgEffect fx-@theme.FxShape" aria-hidden="true">
+        @for (var i = 0; i < theme.FxCount; i++)
         {
-            var left = (i * 7 + 5) % 100;
-            var delay = (i * 0.7).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            var dur = (6 + (i % 5) * 1.6).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var left = (i * 97 + 5) % 100;
+            var delay = (i * (theme.FxSpeed / (double)theme.FxCount)).ToString("0.##", inv);
+            var dur = (theme.FxSpeed * (0.7 + (i % 5) * 0.12)).ToString("0.##", inv);
             <span class="meteor" style="left:@(left)%; animation-delay:@(delay)s; animation-duration:@(dur)s"></span>
         }
     </div>

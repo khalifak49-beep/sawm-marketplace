@@ -111,6 +111,42 @@
                 </div>
             </div>
 
+            <div class="card mb-3" id="fxCard" style="display:none">
+                <div class="card-header">شكل النيازك وألوانها</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">الشكل</label>
+                        <select name="FxShape" id="s_FxShape" class="form-select">
+                            <option value="streak">خط (نيزك)</option>
+                            <option value="dot">نقطة متوهّجة</option>
+                            <option value="star">نجمة ✦</option>
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <label class="form-label mb-0" style="width:110px">لون النيازك</label>
+                        <input type="color" name="FxColor" id="c_FxColor" value="@Model.FxColor"
+                               class="form-control form-control-sm" style="width:52px;padding:3px;min-height:38px" />
+                        <input type="text" id="t_FxColor" value="@Model.FxColor" dir="ltr"
+                               class="form-control form-control-sm" style="max-width:120px" />
+                    </div>
+                    @{
+                        (string name, string label, int val, int min, int max, string unit)[] fxRanges = new[] {
+                            ("FxSize", "الحجم", Model.FxSize, 20, 180, "px"),
+                            ("FxCount", "العدد", Model.FxCount, 3, 45, ""),
+                            ("FxSpeed", "المدة (أقل = أسرع)", Model.FxSpeed, 3, 24, "s"),
+                        };
+                    }
+                    @foreach (var r in fxRanges)
+                    {
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between small mb-1"><span>@r.label</span>
+                                <span class="rtl-num text-muted"><span id="v_@r.name">@r.val</span>@r.unit</span></div>
+                            <input type="range" name="@r.name" id="r_@r.name" min="@r.min" max="@r.max" value="@r.val" class="form-range" />
+                        </div>
+                    }
+                </div>
+            </div>
+
             <button type="submit" class="btn btn-green w-100 btn-lg">حفظ وتطبيق على المنصة</button>
         </div>
 
@@ -215,24 +251,47 @@
             });
         });
 
-        // الخلفية المتحركة
-        var sel = document.getElementById('s_BgEffect');
-        sel.value = '@Model.BgEffect';
-        function applyBg() {
-            var v = sel.value;
-            body.classList.toggle('fx-drift', v === 'drift');
+        // الخلفية المتحركة + شكل/لون النيازك
+        var sel = document.getElementById('s_BgEffect'); sel.value = '@Model.BgEffect';
+        var fxShape = document.getElementById('s_FxShape'); fxShape.value = '@Model.FxShape';
+        var fxCard = document.getElementById('fxCard');
+
+        function buildFx() {
+            var eff = sel.value, shape = fxShape.value;
+            var count = parseInt(document.getElementById('r_FxCount').value, 10) || 14;
+            var isParticles = (eff === 'meteors' || eff === 'bubbles');
+            fxCard.style.display = isParticles ? '' : 'none';
+            body.classList.toggle('fx-drift', eff === 'drift');
             var old = document.getElementById('bgFxPreview'); if (old) old.remove();
-            if (v === 'meteors' || v === 'bubbles') {
+            if (isParticles) {
                 var d = document.createElement('div');
-                d.id = 'bgFxPreview'; d.className = 'bg-fx bg-fx-' + v; d.setAttribute('aria-hidden', 'true');
+                d.id = 'bgFxPreview'; d.className = 'bg-fx bg-fx-' + eff + ' fx-' + shape; d.setAttribute('aria-hidden', 'true');
                 var html = '';
-                for (var i = 0; i < 14; i++) {
-                    html += '<span class="meteor" style="left:' + ((i * 7 + 5) % 100) + '%;animation-delay:' + (i * 0.7) + 's;animation-duration:' + (6 + (i % 5) * 1.6) + 's"></span>';
+                for (var i = 0; i < count; i++) {
+                    html += '<span class="meteor" style="left:' + ((i * 97 + 5) % 100) + '%;animation-delay:' + (i * 0.5) + 's"></span>';
                 }
                 d.innerHTML = html; body.appendChild(d);
             }
         }
-        sel.addEventListener('change', applyBg);
+        sel.addEventListener('change', buildFx);
+        fxShape.addEventListener('change', buildFx);
+
+        // لون النيازك
+        var fxc = document.getElementById('c_FxColor'), fxt = document.getElementById('t_FxColor');
+        function setFxColor() { fxt.value = fxc.value; root.style.setProperty('--fx-color', fxc.value); }
+        fxc.addEventListener('input', setFxColor);
+        fxt.addEventListener('change', function () { if (/^#[0-9a-fA-F]{6}$/.test(fxt.value)) { fxc.value = fxt.value; setFxColor(); } });
+
+        // حجم/عدد/مدّة النيازك
+        document.getElementById('r_FxSize').addEventListener('input', function () {
+            document.getElementById('v_FxSize').textContent = this.value; root.style.setProperty('--fx-size', this.value + 'px');
+        });
+        document.getElementById('r_FxSpeed').addEventListener('input', function () {
+            document.getElementById('v_FxSpeed').textContent = this.value; root.style.setProperty('--fx-dur', this.value + 's');
+        });
+        document.getElementById('r_FxCount').addEventListener('input', function () {
+            document.getElementById('v_FxCount').textContent = this.value; buildFx();
+        });
 
         // صورة الهيدر
         var hdr = document.getElementById('s_HeaderImageUrl');
@@ -246,7 +305,7 @@
         }
         hdr.addEventListener('input', applyHeader);
 
-        applyBg();
+        buildFx();
     })();
 </script>
 }

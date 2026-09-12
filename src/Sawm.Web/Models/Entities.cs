@@ -637,6 +637,13 @@ public class ThemeSettings
     public int GlassBlur { get; set; } = 16;        // px
     [MaxLength(500)] public string? HeaderImageUrl { get; set; }
     [MaxLength(20)] public string BgEffect { get; set; } = "mesh"; // mesh | drift | meteors | bubbles | none
+
+    // ── مظهر جُسيمات الخلفية (النيازك/الفقاعات) ──
+    [MaxLength(20)] public string FxShape { get; set; } = "streak"; // streak | dot | star
+    [MaxLength(9)] public string FxColor { get; set; } = "#86EFAC";
+    public int FxSize { get; set; } = 90;    // px
+    public int FxCount { get; set; } = 14;   // العدد
+    public int FxSpeed { get; set; } = 8;    // ثواني (أقل = أسرع)
 }
 
 /// <summary>عنوان بريد إضافي تصله نسخة من كل إشعارات المنصة (يديره الأدمن)</summary>
