@@ -5,7 +5,8 @@
 }
 @if (!string.IsNullOrWhiteSpace(th.EmblemImageUrl))
 {
-    <img class="oman-emblem oman-emblem-img" src="@th.EmblemImageUrl" alt="شعار سلطنة عُمان" loading="lazy" />
+    var isOfficial = th.EmblemImageUrl!.StartsWith("/img/oman-emblem.svg", StringComparison.OrdinalIgnoreCase);
+    <img class="oman-emblem oman-emblem-img @(isOfficial ? "oman-emblem-official" : "")" src="@th.EmblemImageUrl" alt="شعار سلطنة عُمان" loading="lazy" />
 }
 else
 {

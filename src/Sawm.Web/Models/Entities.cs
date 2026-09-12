@@ -636,8 +636,14 @@ public class ThemeSettings
     public int GlassOpacity { get; set; } = 60;     // نسبة مئوية
     public int GlassBlur { get; set; } = 16;        // px
     [MaxLength(500)] public string? HeaderImageUrl { get; set; }
+    // صورة الهيدر المرفوعة (تُخزَّن في القاعدة لتبقى بعد إعادة النشر على Render)
+    public byte[]? HeaderImageData { get; set; }
+    [MaxLength(100)] public string? HeaderImageType { get; set; }
     // شعار رسمي (صورة) يحلّ محل الرسم الافتراضي — الافتراضي: شعار سلطنة عُمان الرسمي المُخزَّن محلياً
     [MaxLength(500)] public string? EmblemImageUrl { get; set; } = "/img/oman-emblem.svg";
+    // شعار مرفوع (يُخزَّن في القاعدة)
+    public byte[]? EmblemImageData { get; set; }
+    [MaxLength(100)] public string? EmblemImageType { get; set; }
     // الوضع الوطني: إظهار العلم والشعار والزينة الحكومية (يُشغَّل في المناسبات الوطنية ويُطفأ بعدها)
     public bool NationalMode { get; set; } = true;
     [MaxLength(20)] public string BgEffect { get; set; } = "mesh"; // mesh | drift | meteors | bubbles | none

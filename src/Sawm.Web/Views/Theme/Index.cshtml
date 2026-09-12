@@ -14,7 +14,7 @@
     </form>
 </div>
 
-<form asp-action="Save" method="post" id="themeForm">
+<form asp-action="Save" method="post" id="themeForm" enctype="multipart/form-data">
     @Html.AntiForgeryToken()
     <div class="row g-3">
         <!-- ── الضوابط ── -->
@@ -110,16 +110,37 @@
                         <div class="form-text">شغّله في المناسبات الوطنية لإظهار علم عُمان والشعار الرسمي والزينة الحكومية في الهيدر والفوتر وكل الشاشات، وأطفئه بعدها للعودة للتصميم العادي.</div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">صورة الهيدر (رابط)</label>
-                        <input type="url" name="HeaderImageUrl" id="s_HeaderImageUrl" value="@Model.HeaderImageUrl" dir="ltr"
-                               class="form-control" placeholder="https://…/banner.jpg" />
-                        <div class="form-text">تظهر خلف الشريط العلوي مع تعتيم يحافظ على وضوح النص.</div>
+                        <label class="form-label">صورة الهيدر — ارفع صورة</label>
+                        <input type="file" name="headerImageFile" id="f_HeaderImage" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                               class="form-control" />
+                        <div class="form-text">تظهر خلف الشريط العلوي مع تعتيم يحافظ على وضوح النص. الحد الأقصى 4 ميجابايت (PNG/JPG/WEBP/GIF/SVG). تُحفظ داخل المنصة.</div>
+                        @if (!string.IsNullOrWhiteSpace(Model.HeaderImageUrl))
+                        {
+                            <div class="mt-2 d-flex align-items-center gap-2">
+                                <img id="prev_Header" src="@Model.HeaderImageUrl" alt="معاينة" style="height:40px;border-radius:8px;border:1px solid #e2e8f0" />
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="clearHeader" value="true" id="clearHeader" />
+                                    <label class="form-check-label small" for="clearHeader">إزالة صورة الهيدر</label>
+                                </div>
+                            </div>
+                        }
+                        else { <img id="prev_Header" src="" alt="" hidden style="height:40px;border-radius:8px;border:1px solid #e2e8f0;margin-top:8px" /> }
+                        <input type="hidden" name="HeaderImageUrl" id="s_HeaderImageUrl" value="@Model.HeaderImageUrl" />
                     </div>
                     <div class="mb-1">
-                        <label class="form-label">صورة الشعار الرسمي (رابط)</label>
-                        <input type="text" name="EmblemImageUrl" id="s_EmblemImageUrl" value="@Model.EmblemImageUrl" dir="ltr"
-                               class="form-control" placeholder="/img/oman-emblem.svg أو https://…/emblem.png" />
-                        <div class="form-text">الافتراضي شعار سلطنة عُمان الرسمي المُخزَّن داخل المنصة. يمكن وضع رابط شعار آخر، أو تركه فارغاً لاستخدام الرسم الافتراضي.</div>
+                        <label class="form-label">شعار المنصة — ارفع صورة</label>
+                        <input type="file" name="emblemImageFile" id="f_EmblemImage" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                               class="form-control" />
+                        <div class="form-text">الافتراضي شعار سلطنة عُمان الرسمي المُخزَّن داخل المنصة. ارفع صورة شعار آخر ليحلّ محلّه في الهيدر والفوتر والقائمة.</div>
+                        <div class="mt-2 d-flex align-items-center gap-2" style="background:#f1f5f9;border-radius:10px;padding:6px 10px">
+                            <img id="prev_Emblem" src="@(string.IsNullOrWhiteSpace(Model.EmblemImageUrl) ? "/img/oman-emblem.svg" : Model.EmblemImageUrl)" alt="معاينة الشعار" style="height:44px" />
+                            <span class="small text-muted">الشعار الحالي</span>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="restoreEmblem" />
+                            <label class="form-check-label small" for="restoreEmblem">استعادة شعار سلطنة عُمان الرسمي</label>
+                        </div>
+                        <input type="hidden" name="EmblemImageUrl" id="s_EmblemImageUrl" value="@Model.EmblemImageUrl" />
                     </div>
                 </div>
             </div>
@@ -306,17 +327,56 @@
             document.getElementById('v_FxCount').textContent = this.value; buildFx();
         });
 
-        // صورة الهيدر
-        var hdr = document.getElementById('s_HeaderImageUrl');
-        function applyHeader() {
+        // صورة الهيدر — رفع ملف مع معاينة حيّة
+        var hdrUrl = document.getElementById('s_HeaderImageUrl');
+        var hdrFile = document.getElementById('f_HeaderImage');
+        var hdrPrev = document.getElementById('prev_Header');
+        var hdrClear = document.getElementById('clearHeader');
+        function setHeaderBg(u) {
             var tb = document.querySelector('.topbar'); if (!tb) return;
-            var u = hdr.value.trim();
-            if (/^https?:\/\/|^\//.test(u) && !/['"()<>;]/.test(u)) {
+            if (u) {
                 tb.style.backgroundImage = "linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,.72)),url('" + u + "')";
                 tb.style.backgroundSize = 'cover'; tb.style.backgroundPosition = 'center';
             } else { tb.style.backgroundImage = ''; }
         }
-        hdr.addEventListener('input', applyHeader);
+        if (hdrFile) hdrFile.addEventListener('change', function () {
+            var f = this.files && this.files[0]; if (!f) return;
+            var u = URL.createObjectURL(f);
+            setHeaderBg(u);
+            if (hdrPrev) { hdrPrev.src = u; hdrPrev.hidden = false; }
+            if (hdrClear) hdrClear.checked = false;
+        });
+        if (hdrClear) hdrClear.addEventListener('change', function () {
+            if (this.checked) {
+                if (hdrFile) hdrFile.value = '';
+                if (hdrUrl) hdrUrl.value = '';        // الخادم يمسح الصورة عند رابط فارغ
+                if (hdrPrev) hdrPrev.hidden = true;
+                setHeaderBg('');
+            }
+        });
+
+        // الشعار — رفع ملف/استعادة الرسمي مع معاينة حيّة
+        var embUrl = document.getElementById('s_EmblemImageUrl');
+        var embFile = document.getElementById('f_EmblemImage');
+        var embPrev = document.getElementById('prev_Emblem');
+        var embRestore = document.getElementById('restoreEmblem');
+        function setEmblemEverywhere(u) {
+            if (embPrev) embPrev.src = u;
+            document.querySelectorAll('img.oman-emblem-img').forEach(function (im) { im.src = u; });
+        }
+        if (embFile) embFile.addEventListener('change', function () {
+            var f = this.files && this.files[0]; if (!f) return;
+            var u = URL.createObjectURL(f);
+            setEmblemEverywhere(u);
+            if (embRestore) embRestore.checked = false;
+        });
+        if (embRestore) embRestore.addEventListener('change', function () {
+            if (this.checked) {
+                if (embFile) embFile.value = '';
+                if (embUrl) embUrl.value = '/img/oman-emblem.svg';  // استعادة الرسمي
+                setEmblemEverywhere('/img/oman-emblem.svg');
+            }
+        });
 
         // الوضع الوطني — معاينة حيّة: إظهار/إخفاء زينة الهوية الوطنية على الصفحة الحالية
         var natSw = document.getElementById('s_NationalMode');

@@ -41,8 +41,12 @@ public class ThemeService
         t.IconScale = Clamp(s.IconScale, 70, 160);
         t.GlassOpacity = Clamp(s.GlassOpacity, 25, 95);
         t.GlassBlur = Clamp(s.GlassBlur, 0, 30);
-        t.HeaderImageUrl = SanitizeUrl(s.HeaderImageUrl);
-        t.EmblemImageUrl = SanitizeUrl(s.EmblemImageUrl);
+        ApplyImage(s.HeaderImageData, s.HeaderImageType, s.HeaderImageUrl, "/Theme/HeaderImage",
+                   d => t.HeaderImageData = d, ty => t.HeaderImageType = ty, u => t.HeaderImageUrl = u,
+                   () => t.HeaderImageData);
+        ApplyImage(s.EmblemImageData, s.EmblemImageType, s.EmblemImageUrl, "/Theme/EmblemImage",
+                   d => t.EmblemImageData = d, ty => t.EmblemImageType = ty, u => t.EmblemImageUrl = u,
+                   () => t.EmblemImageData);
         t.NationalMode = s.NationalMode;
         t.BgEffect = s.BgEffect is "mesh" or "drift" or "meteors" or "bubbles" or "none" ? s.BgEffect : "mesh";
         t.FxShape = s.FxShape is "streak" or "dot" or "star" ? s.FxShape : "streak";
@@ -84,6 +88,38 @@ public class ThemeService
     {
         v = (v ?? "").Trim();
         return System.Text.RegularExpressions.Regex.IsMatch(v, "^#[0-9a-fA-F]{6}$") ? v : fallback;
+    }
+
+    /// <summary>يطبّق صورة على حقول المظهر: ملف مرفوع (يُخزَّن في القاعدة) أو رابط خارجي.
+    /// عند وجود ملف جديد يُخزَّن ويصبح الرابط مساراً داخلياً؛ وإلا يُستخدم الرابط ويُمسح المخزَّن،
+    /// مع الاحتفاظ بالصورة المخزّنة إن أبقى المستخدم المسار الداخلي دون رفع ملف جديد.</summary>
+    private static void ApplyImage(
+        byte[]? newData, string? newType, string? postedUrl, string internalRoute,
+        Action<byte[]?> setData, Action<string?> setType, Action<string?> setUrl,
+        Func<byte[]?> currentData)
+    {
+        if (newData is { Length: > 0 })
+        {
+            setData(newData);
+            setType(newType);
+            setUrl(internalRoute + "?v=" + DateTime.UtcNow.Ticks);
+            return;
+        }
+
+        var url = SanitizeUrl(postedUrl);
+        if (url != null && url.StartsWith(internalRoute, StringComparison.Ordinal))
+        {
+            // لم يُرفع ملف جديد والمستخدم أبقى المسار الداخلي → احتفظ بالصورة المخزّنة إن وُجدت
+            var has = currentData() is { Length: > 0 };
+            setUrl(has ? url : null);
+            if (!has) { setData(null); setType(null); }
+        }
+        else
+        {
+            setUrl(url);       // رابط خارجي أو فارغ
+            setData(null);
+            setType(null);
+        }
     }
 
     /// <summary>يقبل روابط http(s) أو مسارات داخلية فقط، ويزيل محارف قد تكسر CSS.</summary>
