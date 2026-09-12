@@ -61,6 +61,8 @@
     </noscript>
 </head>
 <body class="@(theme.BgEffect == "drift" ? "fx-drift" : "")">
+<!-- شريط علم عُمان (هوية وطنية على كل الصفحات) -->
+<div class="oman-topstrip" aria-hidden="true"></div>
 <!-- ستارة الانتقال بين الشاشات — تُرفع فور تحميل الصفحة -->
 <div id="pageFade" aria-hidden="true"><span class="pf-mark">س</span></div>
 
@@ -160,7 +162,12 @@
             </nav>
 
             <div class="sidebar-foot">
-                المنصة تربط وتوثّق وتضمن رقمياً فقط — ولا تتحمل مسؤولية النقل أو التخزين أو التأمين.
+                <div class="nat-badge mb-2">
+                    <partial name="_OmanEmblem" />
+                    <span><b>سلطنة عُمان</b><br><span>منصة وطنية</span></span>
+                </div>
+                <div class="flag-strip"><partial name="_OmanFlag" /></div>
+                <div class="mt-2">المنصة تربط وتوثّق وتضمن رقمياً فقط — ولا تتحمل مسؤولية النقل أو التخزين أو التأمين.</div>
             </div>
         </aside>
 
@@ -270,11 +277,15 @@ else
         @RenderBody()
     </main>
 
-    <footer class="footer-note mt-5">
-        <div class="container d-flex flex-wrap justify-content-between gap-2">
-            <span>منصة ساوم — تربط وتوثّق وتضمن رقمياً؛ ولا تتحمل مسؤولية النقل أو التخزين أو التأمين.</span>
+    <footer class="footer-note mt-5" style="position:relative; overflow:hidden;">
+        <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2" style="position:relative; z-index:2;">
+            <div class="d-flex align-items-center gap-2 footer-emblem">
+                <partial name="_OmanEmblem" />
+                <span>منصة ساوم — تربط وتوثّق وتضمن رقمياً؛ ولا تتحمل مسؤولية النقل أو التخزين أو التأمين.</span>
+            </div>
             <span class="rtl-num">© @DateTime.Now.Year</span>
         </div>
+        <div class="flag-tall" style="position:absolute; inset-inline:0; bottom:0; z-index:1; opacity:.9;"><partial name="_OmanFlag" /></div>
     </footer>
 }
 

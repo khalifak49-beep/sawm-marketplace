@@ -891,3 +891,44 @@ body.fx-drift { background-size: 200% 200% !important; animation: bgDrift 24s ea
     .bg-fx { display: none !important; }
     body.fx-drift { animation: none !important; }
 }
+
+/* ── هوية عُمان: العلم والشعار ─────────────────────────────────── */
+/* شريط العلم العلوي (على كل الصفحات) */
+.oman-topstrip {
+    height: 4px; width: 100%;
+    background: linear-gradient(90deg, #C8102E 0 33.33%, #F4F4F4 33.33% 66.66%, #0A7B3E 66.66% 100%);
+    background-size: 220% 100%;
+    position: relative; z-index: 60;
+    animation: omanStrip 9s ease-in-out infinite;
+}
+@keyframes omanStrip { 0%,100% { background-position: 0 0; } 50% { background-position: 100% 0; } }
+
+.oman-emblem { width: 40px; height: 40px; flex: none; vertical-align: middle; }
+.nat-badge .oman-emblem { width: 34px; height: 34px; }
+.footer-emblem .oman-emblem { width: 34px; height: 34px; color: var(--primary-700); }
+
+/* شريط العلم الانسيابي المتحرك */
+.oman-flag { width: 100%; height: 100%; line-height: 0; overflow: hidden; }
+.oman-flag svg { width: 100%; height: 100%; display: block;
+    filter: drop-shadow(0 2px 8px rgba(200, 16, 46, .16)); }
+.flag-strip { height: 44px; }
+.flag-tall { height: 90px; }
+
+/* كل شريط لون يتموّج باستقلال → إحساس برفرفة العلم */
+.oman-flag .fw { animation: omanWave 9s ease-in-out infinite; transform-origin: center; will-change: transform; }
+.oman-flag .fw2 { animation-duration: 11s; animation-delay: -2s; }
+.oman-flag .fw3 { animation-duration: 13s; animation-delay: -4s; }
+@keyframes omanWave {
+    0%, 100% { transform: translateX(0) translateY(0); }
+    50%      { transform: translateX(-2.5%) translateY(-4px); }
+}
+
+/* بطاقة الهوية الوطنية في ذيل الشريط الجانبي */
+.nat-badge { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.92); }
+.nat-badge .oman-emblem { color: #fff; opacity: .95; }
+.nat-badge b { font-size: .82rem; }
+.nat-badge span { font-size: .68rem; color: rgba(255,255,255,.7); }
+
+@media (prefers-reduced-motion: reduce) {
+    .oman-topstrip, .oman-flag .fw { animation: none !important; }
+}
