@@ -60,7 +60,7 @@
         <style>#pageFade { display: none !important; }</style>
     </noscript>
 </head>
-<body class="@(theme.BgEffect == "drift" ? "fx-drift" : "")">
+<body class="@(theme.BgEffect == "drift" ? "fx-drift " : "")@(theme.NationalMode ? "nat-on" : "nat-off")">
 <!-- شريط علم عُمان (هوية وطنية على كل الصفحات) -->
 <div class="oman-topstrip" aria-hidden="true"></div>
 <!-- ستارة الانتقال بين الشاشات — تُرفع فور تحميل الصفحة -->

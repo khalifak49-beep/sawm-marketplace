@@ -102,6 +102,13 @@
                             <option value="none">بدون</option>
                         </select>
                     </div>
+                    <div class="mb-3 p-3 rounded" style="background:color-mix(in srgb, var(--primary) 7%, #fff); border:1px solid color-mix(in srgb, var(--primary) 20%, transparent)">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="NationalMode" id="s_NationalMode" />
+                            <label class="form-check-label fw-semibold" for="s_NationalMode">الوضع الوطني — العلم والشعار والطابع الحكومي</label>
+                        </div>
+                        <div class="form-text">شغّله في المناسبات الوطنية لإظهار علم عُمان والشعار الرسمي والزينة الحكومية في الهيدر والفوتر وكل الشاشات، وأطفئه بعدها للعودة للتصميم العادي.</div>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">صورة الهيدر (رابط)</label>
                         <input type="url" name="HeaderImageUrl" id="s_HeaderImageUrl" value="@Model.HeaderImageUrl" dir="ltr"
@@ -110,9 +117,9 @@
                     </div>
                     <div class="mb-1">
                         <label class="form-label">صورة الشعار الرسمي (رابط)</label>
-                        <input type="url" name="EmblemImageUrl" id="s_EmblemImageUrl" value="@Model.EmblemImageUrl" dir="ltr"
-                               class="form-control" placeholder="https://…/oman-emblem.png" />
-                        <div class="form-text">إن وُضع، يظهر هذا الشعار في الهيدر والفوتر والقائمة بدل الرسم الافتراضي.</div>
+                        <input type="text" name="EmblemImageUrl" id="s_EmblemImageUrl" value="@Model.EmblemImageUrl" dir="ltr"
+                               class="form-control" placeholder="/img/oman-emblem.svg أو https://…/emblem.png" />
+                        <div class="form-text">الافتراضي شعار سلطنة عُمان الرسمي المُخزَّن داخل المنصة. يمكن وضع رابط شعار آخر، أو تركه فارغاً لاستخدام الرسم الافتراضي.</div>
                     </div>
                 </div>
             </div>
@@ -310,6 +317,15 @@
             } else { tb.style.backgroundImage = ''; }
         }
         hdr.addEventListener('input', applyHeader);
+
+        // الوضع الوطني — معاينة حيّة: إظهار/إخفاء زينة الهوية الوطنية على الصفحة الحالية
+        var natSw = document.getElementById('s_NationalMode');
+        if (natSw) {
+            natSw.addEventListener('change', function () {
+                document.body.classList.toggle('nat-off', !this.checked);
+                document.body.classList.toggle('nat-on', this.checked);
+            });
+        }
 
         buildFx();
     })();

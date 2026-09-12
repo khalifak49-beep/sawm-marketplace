@@ -986,6 +986,24 @@ body.fx-drift { background-size: 200% 200% !important; animation: bgDrift 24s ea
 
 /* شعار كصورة رسمية (يحلّ محل الرسم الافتراضي) */
 .oman-emblem-img { object-fit: contain; display: inline-block; }
+/* الشعار الرسمي صورة سوداء أحادية اللون — يظهر كما هو على الهيدر الأبيض،
+   ويُبيَّض عبر مُرشِّح على الأسطح الداكنة (الشريط الجانبي والفوتر) */
+.brand-emblem .oman-emblem-img,
+.nat-badge .oman-emblem-img,
+.gov-footer .oman-emblem-img { filter: brightness(0) invert(1); opacity: .92; }
+
 .gov-header .navbar { width: 100%; }
 .gov-header .navbar-collapse { flex-grow: 0; }
 @media (min-width: 992px) { .gov-header .navbar-collapse { display: flex !important; } }
+
+/* ══════════ الوضع الوطني مُطفأ → إخفاء العلم والشعار والزينة الحكومية ══════════ */
+body.nat-off .oman-topstrip,
+body.nat-off .oman-flag,
+body.nat-off .topbar-flag,
+body.nat-off .flag-strip,
+body.nat-off .gov-header-flag,
+body.nat-off .gov-footer-flag,
+body.nat-off .nat-badge,
+body.nat-off .brand-emblem,
+body.nat-off .gov-emblem-mark,
+body.nat-off .gf-emblem { display: none !important; }

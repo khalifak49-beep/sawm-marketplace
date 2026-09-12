@@ -43,6 +43,7 @@ public class ThemeService
         t.GlassBlur = Clamp(s.GlassBlur, 0, 30);
         t.HeaderImageUrl = SanitizeUrl(s.HeaderImageUrl);
         t.EmblemImageUrl = SanitizeUrl(s.EmblemImageUrl);
+        t.NationalMode = s.NationalMode;
         t.BgEffect = s.BgEffect is "mesh" or "drift" or "meteors" or "bubbles" or "none" ? s.BgEffect : "mesh";
         t.FxShape = s.FxShape is "streak" or "dot" or "star" ? s.FxShape : "streak";
         t.FxColor = Color(s.FxColor, "#86EFAC");
