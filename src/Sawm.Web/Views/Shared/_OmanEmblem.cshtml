@@ -1,15 +1,27 @@
-@* شعار سلطنة عُمان (الخنجر والسيفان) — رسم مبسّط أحادي اللون (currentColor)؛ الحجم عبر CSS *@
-<svg class="oman-emblem" viewBox="0 0 100 100" fill="currentColor"
-     xmlns="http://www.w3.org/2000/svg" role="img" aria-label="شعار سلطنة عُمان">
-    <g stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-        <g fill="none" stroke-width="3.2">
-            <path d="M22 84 C 30 60, 44 44, 60 30 L 66 24" />
-            <path d="M78 84 C 70 60, 56 44, 40 30 L 34 24" />
-            <path d="M18 88 l 8 -6 M82 88 l -8 -6" stroke-width="4.5" />
+@using Sawm.Web.Services
+@inject ThemeService Theme
+@{
+    var th = await Theme.GetAsync();
+}
+@if (!string.IsNullOrWhiteSpace(th.EmblemImageUrl))
+{
+    <img class="oman-emblem oman-emblem-img" src="@th.EmblemImageUrl" alt="شعار سلطنة عُمان" loading="lazy" />
+}
+else
+{
+    @* شعار سلطنة عُمان (الخنجر والسيفان) — رسم مبسّط أحادي اللون (currentColor)؛ الحجم عبر CSS *@
+    <svg class="oman-emblem" viewBox="0 0 100 100" fill="currentColor"
+         xmlns="http://www.w3.org/2000/svg" role="img" aria-label="شعار سلطنة عُمان">
+        <g stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <g fill="none" stroke-width="3.2">
+                <path d="M22 84 C 30 60, 44 44, 60 30 L 66 24" />
+                <path d="M78 84 C 70 60, 56 44, 40 30 L 34 24" />
+                <path d="M18 88 l 8 -6 M82 88 l -8 -6" stroke-width="4.5" />
+            </g>
+            <rect x="26" y="49" width="48" height="9" rx="3" />
+            <rect x="45" y="47" width="10" height="13" rx="2" />
+            <path d="M46 34 h8 v14 h-8 z" />
+            <path d="M44 58 C 40 70, 44 82, 56 88 C 50 78, 52 68, 56 60 Z" />
         </g>
-        <rect x="26" y="49" width="48" height="9" rx="3" />
-        <rect x="45" y="47" width="10" height="13" rx="2" />
-        <path d="M46 34 h8 v14 h-8 z" />
-        <path d="M44 58 C 40 70, 44 82, 56 88 C 50 78, 52 68, 56 60 Z" />
-    </g>
-</svg>
+    </svg>
+}

@@ -88,6 +88,7 @@
             <a class="brand" asp-controller="Home" asp-action="Index">
                 <span class="brand-mark">س</span>
                 <span class="brand-text"><b>ساوم</b><span>سوق المحاصيل الذكي</span></span>
+                <span class="brand-emblem"><partial name="_OmanEmblem" /></span>
             </a>
 
             <nav aria-label="التنقل الرئيسي">
@@ -179,13 +180,16 @@
                     @Icons.Render("menu")
                 </button>
 
-                <div class="me-auto">
+                <div>
                     <h1 class="page-title">@ViewData["Title"]</h1>
                     @if (ViewData["Subtitle"] is string sub)
                     {
                         <div class="page-sub">@sub</div>
                     }
                 </div>
+
+                <!-- علم عُمان الانسيابي داخل الهيدر -->
+                <div class="topbar-flag d-none d-md-block"><partial name="_OmanFlag" /></div>
 
                 <a class="icon-btn" asp-controller="Notifications" asp-action="Index"
                    aria-label="الإشعارات@(unread > 0 ? $" — {unread} غير مقروء" : "")">
@@ -243,49 +247,66 @@
 }
 else
 {
-    <!-- ── واجهة الزوار ─────────────────────────────────────── -->
-    <nav class="navbar navbar-expand-lg sticky-top" style="background:var(--grad-green)">
-        <div class="container">
-            <a class="brand py-2" asp-controller="Home" asp-action="Index">
-                <span class="brand-mark">س</span>
-                <span class="brand-text"><b>ساوم</b><span>سوق المحاصيل الذكي</span></span>
+    <!-- ── الهيدر الحكومي (أبيض + علم انسيابي + شعار) ───────────── -->
+    <header class="gov-header sticky-top">
+      <nav class="navbar navbar-expand-lg p-0">
+        <div class="container gov-header-in">
+            <a class="gov-brand" asp-controller="Home" asp-action="Index">
+                <span class="gov-emblem-mark"><partial name="_OmanEmblem" /></span>
+                <span class="gov-brand-txt"><b>منصة ساوم</b><span>سوق المحاصيل الذكي</span></span>
             </a>
-            <button class="navbar-toggler border-light" type="button" data-bs-toggle="collapse" data-bs-target="#guestNav">
+            <div class="gov-header-flag d-none d-lg-block" aria-hidden="true"><partial name="_OmanFlag" /></div>
+            <button class="navbar-toggler gov-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#guestNav" aria-label="القائمة">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="guestNav">
-                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-                    <li class="nav-item">
-                        <a class="nav-link on-green-muted" asp-controller="Auctions" asp-action="Index">المزادات</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link on-green-muted" asp-controller="Tenders" asp-action="Index">المناقصات</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-white" asp-controller="Account" asp-action="Login">دخول</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-brand btn-sm" asp-controller="Account" asp-action="Register">إنشاء حساب</a>
-                    </li>
-                </ul>
+            <div class="collapse navbar-collapse gov-navwrap" id="guestNav">
+                <nav class="gov-nav">
+                    <a class="@On("Home")" asp-controller="Home" asp-action="Index">الرئيسية</a>
+                    <a class="@On("Auctions")" asp-controller="Auctions" asp-action="Index">المزادات</a>
+                    <a class="@On("Tenders")" asp-controller="Tenders" asp-action="Index">المناقصات</a>
+                </nav>
+                <div class="gov-actions">
+                    <a class="btn btn-outline-success btn-sm" asp-controller="Account" asp-action="Login">تسجيل الدخول</a>
+                    <a class="btn btn-green btn-sm" asp-controller="Account" asp-action="Register">إنشاء حساب</a>
+                </div>
             </div>
         </div>
-    </nav>
+      </nav>
+    </header>
 
     <main class="container py-4">
         <partial name="_Flash" />
         @RenderBody()
     </main>
 
-    <footer class="footer-note mt-5" style="position:relative; overflow:hidden;">
-        <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2" style="position:relative; z-index:2;">
-            <div class="d-flex align-items-center gap-2 footer-emblem">
-                <partial name="_OmanEmblem" />
-                <span>منصة ساوم — تربط وتوثّق وتضمن رقمياً؛ ولا تتحمل مسؤولية النقل أو التخزين أو التأمين.</span>
+    <!-- ── الفوتر الحكومي (داكن + شعار + علم + روابط) ───────────── -->
+    <footer class="gov-footer">
+        <div class="container gov-footer-in">
+            <div class="gf-about">
+                <div class="gf-emblem"><partial name="_OmanEmblem" /></div>
+                <b>معاً نحو مستقبل رقمي أفضل</b>
+                <p>منصة وطنية تربط المزارع بالوسيط والشركة، وتوثّق وتضمن التداول رقمياً.</p>
             </div>
-            <span class="rtl-num">© @DateTime.Now.Year</span>
+            <div class="gf-links">
+                <span class="gf-h">روابط</span>
+                <a asp-controller="Home" asp-action="Index">الرئيسية</a>
+                <a asp-controller="Auctions" asp-action="Index">المزادات</a>
+                <a asp-controller="Tenders" asp-action="Index">المناقصات</a>
+                <a asp-controller="Account" asp-action="Login">تسجيل الدخول</a>
+            </div>
+            <div class="gf-links">
+                <span class="gf-h">تواصل</span>
+                <a href="mailto:service@althiqaom.com">البريد الإلكتروني</a>
+                <a asp-controller="Account" asp-action="Register">إنشاء حساب</a>
+            </div>
         </div>
-        <div class="flag-tall" style="position:absolute; inset-inline:0; bottom:0; z-index:1; opacity:.9;"><partial name="_OmanFlag" /></div>
+        <div class="gov-footer-flag" aria-hidden="true"><partial name="_OmanFlag" /></div>
+        <div class="gov-footer-bottom">
+            <div class="container d-flex flex-wrap justify-content-between gap-2">
+                <span>جميع الحقوق محفوظة — منصة ساوم</span>
+                <span class="rtl-num">© @DateTime.Now.Year</span>
+            </div>
+        </div>
     </footer>
 }
 

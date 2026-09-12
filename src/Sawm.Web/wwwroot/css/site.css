@@ -932,3 +932,60 @@ body.fx-drift { background-size: 200% 200% !important; animation: bgDrift 24s ea
 @media (prefers-reduced-motion: reduce) {
     .oman-topstrip, .oman-flag .fw { animation: none !important; }
 }
+
+/* ── علم عُمان داخل الهيدر والعلامة ─────────────────────────────── */
+.topbar { position: relative; overflow: hidden; }
+.topbar-flag { flex: 1 1 auto; min-width: 0; height: 46px; margin-inline: 14px; align-self: center; }
+.topbar-flag .oman-flag { height: 100%; }
+.brand { position: relative; }
+.brand-emblem { margin-inline-start: auto; }
+.brand-emblem .oman-emblem { width: 30px; height: 30px; color: #fff; opacity: .95; }
+/* شريط العلم العلوي أوضح قليلاً */
+.oman-topstrip { height: 5px; }
+
+/* ══════════ الطابع الحكومي: هيدر أبيض + فوتر داكن ══════════ */
+/* الهيدر */
+.gov-header { position: sticky; top: 0; z-index: 50; background: #fff;
+    border-bottom: 1px solid #e6eef0; box-shadow: 0 2px 16px rgba(15,61,36,.06); }
+.gov-header-in { display: flex; align-items: center; gap: 14px; min-height: 78px; }
+.gov-brand { display: flex; align-items: center; gap: 11px; }
+.gov-brand:hover { text-decoration: none; }
+.gov-emblem-mark .oman-emblem { width: 48px; height: 48px; color: var(--primary-700); }
+.gov-brand-txt b { display: block; font-size: 1.18rem; color: var(--primary-900); line-height: 1.1; }
+.gov-brand-txt span { font-size: .72rem; color: var(--muted-fg); }
+.gov-header-flag { flex: 1 1 auto; min-width: 0; height: 52px; align-self: center; margin-inline: 10px; }
+.gov-header-flag .oman-flag { height: 100%; }
+.gov-navwrap { display: flex; align-items: center; gap: 16px; }
+.gov-nav { display: flex; gap: 4px; flex-wrap: wrap; }
+.gov-nav a { padding: 8px 14px; border-radius: var(--r-btn); color: #334155; font-weight: 600; font-size: .92rem; position: relative; }
+.gov-nav a:hover { background: color-mix(in srgb, var(--primary) 9%, transparent); color: var(--primary-700); text-decoration: none; }
+.gov-nav a.active { color: var(--primary-700); }
+.gov-nav a.active::after { content: ""; position: absolute; inset-inline: 12px; bottom: 3px; height: 2.5px; background: var(--primary); border-radius: 2px; }
+.gov-actions { display: flex; gap: 8px; }
+@media (max-width: 991.98px) {
+    .gov-navwrap { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px 0; }
+    .gov-nav { flex-direction: column; }
+    .gov-actions { flex-direction: column; }
+}
+
+/* الفوتر الداكن */
+.gov-footer { position: relative; margin-top: 56px; background: #0E2038; color: #cbd5e1; overflow: hidden; }
+.gov-footer-in { display: flex; flex-wrap: wrap; gap: 32px; padding: 40px 0 90px; position: relative; z-index: 2; }
+.gf-about { flex: 2 1 280px; }
+.gf-about .gf-emblem .oman-emblem { width: 54px; height: 54px; color: #e2e8f0; margin-bottom: 12px; }
+.gf-about b { display: block; color: #fff; font-size: 1.15rem; margin-bottom: 6px; }
+.gf-about p { font-size: .9rem; line-height: 1.9; color: #94a3b8; max-width: 420px; }
+.gf-links { flex: 1 1 150px; display: flex; flex-direction: column; gap: 8px; }
+.gf-links .gf-h { color: #fff; font-weight: 700; font-size: .95rem; margin-bottom: 6px; }
+.gf-links a { color: #94a3b8; font-size: .9rem; }
+.gf-links a:hover { color: #fff; text-decoration: none; }
+.gov-footer-flag { position: absolute; inset-inline: 0; bottom: 30px; height: 70px; z-index: 1; opacity: .9; }
+.gov-footer-flag .oman-flag { height: 100%; }
+.gov-footer-bottom { position: relative; z-index: 2; border-top: 1px solid rgba(255,255,255,.08);
+    padding: 14px 0; font-size: .82rem; color: #94a3b8; background: rgba(0,0,0,.2); }
+
+/* شعار كصورة رسمية (يحلّ محل الرسم الافتراضي) */
+.oman-emblem-img { object-fit: contain; display: inline-block; }
+.gov-header .navbar { width: 100%; }
+.gov-header .navbar-collapse { flex-grow: 0; }
+@media (min-width: 992px) { .gov-header .navbar-collapse { display: flex !important; } }

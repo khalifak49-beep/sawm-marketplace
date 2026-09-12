@@ -636,6 +636,7 @@ public class ThemeSettings
     public int GlassOpacity { get; set; } = 60;     // نسبة مئوية
     public int GlassBlur { get; set; } = 16;        // px
     [MaxLength(500)] public string? HeaderImageUrl { get; set; }
+    [MaxLength(500)] public string? EmblemImageUrl { get; set; }   // شعار رسمي (صورة) يحلّ محل الرسم الافتراضي
     [MaxLength(20)] public string BgEffect { get; set; } = "mesh"; // mesh | drift | meteors | bubbles | none
 
     // ── مظهر جُسيمات الخلفية (النيازك/الفقاعات) ──

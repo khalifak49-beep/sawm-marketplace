@@ -102,11 +102,17 @@
                             <option value="none">بدون</option>
                         </select>
                     </div>
-                    <div class="mb-1">
+                    <div class="mb-3">
                         <label class="form-label">صورة الهيدر (رابط)</label>
                         <input type="url" name="HeaderImageUrl" id="s_HeaderImageUrl" value="@Model.HeaderImageUrl" dir="ltr"
                                class="form-control" placeholder="https://…/banner.jpg" />
                         <div class="form-text">تظهر خلف الشريط العلوي مع تعتيم يحافظ على وضوح النص.</div>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label">صورة الشعار الرسمي (رابط)</label>
+                        <input type="url" name="EmblemImageUrl" id="s_EmblemImageUrl" value="@Model.EmblemImageUrl" dir="ltr"
+                               class="form-control" placeholder="https://…/oman-emblem.png" />
+                        <div class="form-text">إن وُضع، يظهر هذا الشعار في الهيدر والفوتر والقائمة بدل الرسم الافتراضي.</div>
                     </div>
                 </div>
             </div>
