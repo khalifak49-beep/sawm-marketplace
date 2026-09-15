@@ -34,15 +34,16 @@ public class ShippingController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Release(int id)
+    public async Task<IActionResult> Release(int id, decimal commissionRate)
     {
         var c = await _db.Contracts.FindAsync(id);
         if (c is not null && !c.ShippingReleased)
         {
+            c.ShippingCommissionRate = commissionRate < 0 ? 0 : (commissionRate > 100 ? 100 : commissionRate);
             c.ShippingReleased = true;
             c.ShippingReleasedAt = DateTime.Now;
             await _db.SaveChangesAsync();
-            TempData["Success"] = $"تم إرسال طلب الشحن للعقد {c.ContractNumber} إلى أنظمة الشحن المرتبطة.";
+            TempData["Success"] = $"تم إرسال طلب الشحن للعقد {c.ContractNumber} (عمولة ساوم {c.ShippingCommissionRate:0.##}%) إلى أنظمة الشحن المرتبطة.";
         }
         return RedirectToAction(nameof(Index));
     }

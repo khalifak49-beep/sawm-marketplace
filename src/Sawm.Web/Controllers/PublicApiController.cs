@@ -90,6 +90,40 @@ public class PublicApiController : ControllerBase
         return Payload("shipments", fields!, data);
     }
 
+    /// <summary>
+    /// يستدعيها نظام اللوجستيك عند "قبول استلام الشحنة" فتتحدّث الحالة في ساوم.
+    /// يتطلب مفتاحاً يملك صلاحية مورد shipments. (كتابة محصورة: تأكيد الاستلام فقط.)
+    /// </summary>
+    [HttpPost("shipments/{id:int}/receive")]
+    public async Task<IActionResult> ReceiveShipment(int id, [FromBody] ReceiveShipmentDto? body = null)
+    {
+        var (key, _, error) = await AuthorizeKey("shipments");
+        if (error is not null) return error;
+
+        var c = await _db.Contracts.FirstOrDefaultAsync(x => x.Id == id && x.ShippingReleased);
+        if (c is null)
+            return NotFound(new { error = "not_found", message = "لا توجد شحنة مُرسَلة بهذا المعرّف." });
+
+        if (!c.ShippingReceived)
+        {
+            c.ShippingReceived = true;
+            c.ShippingReceivedAt = DateTime.Now;
+            var system = string.IsNullOrWhiteSpace(body?.System) ? key!.Name : body!.System!.Trim();
+            c.ShippingReceivedBy = system.Length > 120 ? system[..120] : system;
+            await _db.SaveChangesAsync();
+        }
+
+        return Ok(new
+        {
+            id = c.Id,
+            contractNumber = c.ContractNumber,
+            received = true,
+            receivedAt = c.ShippingReceivedAt,
+            receivedBy = c.ShippingReceivedBy,
+            message = "تم تأكيد استلام الشحنة من منصة ساوم."
+        });
+    }
+
     [HttpGet("crops")]
     public async Task<IActionResult> Crops()
     {
@@ -109,8 +143,7 @@ public class PublicApiController : ControllerBase
         return Ok(new { resource, count = list.Count, fields, data = list });
     }
 
-    /// <summary>يصادق على المفتاح ويتحقق أن المورد مسموح له، ويعيد الحقول المسموح بها.</summary>
-    private async Task<(string[]? fields, IActionResult? error)> AuthorizeResource(string resource)
+    private string? ReadProvidedKey()
     {
         var provided = Request.Headers["X-API-Key"].FirstOrDefault();
         if (string.IsNullOrWhiteSpace(provided))
@@ -119,16 +152,31 @@ public class PublicApiController : ControllerBase
             if (!string.IsNullOrWhiteSpace(auth) && auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                 provided = auth["Bearer ".Length..].Trim();
         }
+        return provided;
+    }
 
-        var key = await _keys.AuthenticateAsync(provided);
+    /// <summary>يصادق على المفتاح ويتحقق أن المورد مسموح له، ويعيد المفتاح والحقول المسموح بها.</summary>
+    private async Task<(ApiKey? key, string[]? fields, IActionResult? error)> AuthorizeKey(string resource)
+    {
+        var key = await _keys.AuthenticateAsync(ReadProvidedKey());
         if (key is null)
-            return (null, Unauthorized(new { error = "unauthorized", message = "مفتاح API غير صالح أو غير مفعّل." }));
+            return (null, null, Unauthorized(new { error = "unauthorized", message = "مفتاح API غير صالح أو غير مفعّل." }));
 
         var map = ApiCatalog.ParseFields(key.FieldsJson);
         if (!map.TryGetValue(resource, out var fields) || fields.Length == 0)
-            return (null, StatusCode(StatusCodes.Status403Forbidden,
+            return (null, null, StatusCode(StatusCodes.Status403Forbidden,
                 new { error = "forbidden", message = $"هذا المفتاح لا يملك صلاحية الوصول إلى '{resource}'." }));
 
-        return (fields, null);
+        return (key, fields, null);
+    }
+
+    /// <summary>نسخة للقراءة: تُهمل المفتاح وتعيد الحقول والخطأ فقط.</summary>
+    private async Task<(string[]? fields, IActionResult? error)> AuthorizeResource(string resource)
+    {
+        var (_, fields, error) = await AuthorizeKey(resource);
+        return (fields, error);
     }
 }
+
+/// <summary>جسم طلب تأكيد استلام الشحنة (اختياري) من نظام اللوجستيك.</summary>
+public record ReceiveShipmentDto(string? System, string? Reference);

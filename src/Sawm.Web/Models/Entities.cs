@@ -474,6 +474,17 @@ public class Contract
     public bool ShippingReleased { get; set; }
     public DateTime? ShippingReleasedAt { get; set; }
 
+    /// <summary>نسبة عمولة منصة ساوم على هذه الشحنة (%) — يحددها الأدمن قبل الإرسال لأنظمة الشحن.</summary>
+    [Column(TypeName = "decimal(5,2)"), Display(Name = "نسبة عمولة ساوم على الشحن %")]
+    public decimal ShippingCommissionRate { get; set; }
+
+    // ── استلام نظام اللوجستيك للشحنة (يُحدَّث عبر callback من النظام الخارجي) ──
+    [Display(Name = "استلمها نظام اللوجستيك")]
+    public bool ShippingReceived { get; set; }
+    public DateTime? ShippingReceivedAt { get; set; }
+    [MaxLength(120), Display(Name = "النظام المستلِم")]
+    public string? ShippingReceivedBy { get; set; }
+
     public ICollection<ContractEvent> Events { get; set; } = new List<ContractEvent>();
     public ICollection<QualityInspection> Inspections { get; set; } = new List<QualityInspection>();
 }

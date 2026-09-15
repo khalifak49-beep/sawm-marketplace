@@ -25,12 +25,12 @@
             <thead><tr>
                 <th>رقم العقد</th><th>المحصول</th><th>الكمية</th>
                 <th>من ← إلى</th><th>تاريخ التسليم</th><th>اللوجستيات</th>
-                <th>الدفع</th><th>حالة الإرسال</th><th>إجراء</th>
+                <th>عمولة ساوم</th><th>الدفع</th><th>حالة الإرسال / الاستلام</th><th>إجراء</th>
             </tr></thead>
             <tbody>
             @if (!Model.Any())
             {
-                <tr><td colspan="9" class="text-center text-muted py-5">لا توجد عقود جاهزة للشحن حالياً.</td></tr>
+                <tr><td colspan="10" class="text-center text-muted py-5">لا توجد عقود جاهزة للشحن حالياً.</td></tr>
             }
             @foreach (var c in Model)
             {
@@ -46,6 +46,15 @@
                     </td>
                     <td class="small rtl-num">@c.DeliveryDate.ToString("yyyy/MM/dd")</td>
                     <td class="small">@Display.Logistics(c.Logistics)</td>
+                    <td class="small">
+                        @if (c.ShippingReleased)
+                        {
+                            var amount = Math.Round(c.TotalValue * c.ShippingCommissionRate / 100m, 2);
+                            <div class="fw-semibold rtl-num">@c.ShippingCommissionRate.ToString("0.##")%</div>
+                            <div class="text-muted rtl-num">@amount.ToString("N2")</div>
+                        }
+                        else { <span class="text-muted">تُحدَّد عند الإرسال</span> }
+                    </td>
                     <td>
                         <span class="badge bg-@(paid ? "success" : "warning")">
                             @(paid ? "مدفوع" : "بانتظار الدفع")
@@ -58,6 +67,13 @@
                                 @Icons.Render("check", 13) تم الإرسال
                             </span>
                             <div class="text-muted small rtl-num">@c.ShippingReleasedAt?.ToString("yyyy/MM/dd HH:mm")</div>
+                            @if (c.ShippingReceived)
+                            {
+                                <div class="mt-1"><span class="badge bg-primary d-inline-flex align-items-center gap-1">
+                                    @Icons.Render("truck", 13) استلمها اللوجستيك</span></div>
+                                <div class="text-muted small">@(c.ShippingReceivedBy ?? "") <span class="rtl-num">@c.ShippingReceivedAt?.ToString("yyyy/MM/dd HH:mm")</span></div>
+                            }
+                            else { <div class="text-muted small mt-1">بانتظار استلام اللوجستيك</div> }
                         }
                         else
                         {
@@ -67,13 +83,18 @@
                     <td class="text-nowrap">
                         @if (!c.ShippingReleased)
                         {
-                            <form asp-action="Release" method="post" class="d-inline"
-                                  data-confirm="إرسال طلب الشحن لهذا العقد إلى أنظمة الشحن المرتبطة؟">
+                            <form asp-action="Release" method="post"
+                                  data-confirm="إرسال طلب الشحن لهذا العقد إلى أنظمة الشحن المرتبطة بعمولة ساوم المحددة؟">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@c.Id" />
-                                <button class="btn btn-sm btn-green d-inline-flex align-items-center gap-1">
-                                    @Icons.Render("send", 14) إرسال لأنظمة الشحن
-                                </button>
+                                <div class="input-group input-group-sm" style="max-width:230px">
+                                    <span class="input-group-text" title="نسبة عمولة ساوم">عمولة%</span>
+                                    <input type="number" name="commissionRate" class="form-control rtl-num"
+                                           value="2" min="0" max="100" step="0.5" required title="نسبة عمولة ساوم على الشحن" />
+                                    <button class="btn btn-green d-inline-flex align-items-center gap-1">
+                                        @Icons.Render("send", 14) إرسال
+                                    </button>
+                                </div>
                             </form>
                         }
                         else
