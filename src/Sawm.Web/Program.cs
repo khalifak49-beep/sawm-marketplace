@@ -39,6 +39,11 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<SawmDbContext>()
 .AddDefaultTokenProviders();
 
+// يتحقق من وجود المستخدم في كل طلب: إن حُذف الحساب أو أُعيدت تهيئة القاعدة،
+// تُرفض الكوكي اليتيمة تلقائياً (تُنهى الجلسة) بدل رمي استثناء داخل الصفحات.
+builder.Services.Configure<Microsoft.AspNetCore.Identity.SecurityStampValidatorOptions>(
+    o => o.ValidationInterval = TimeSpan.Zero);
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";

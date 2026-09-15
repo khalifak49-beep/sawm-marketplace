@@ -12,11 +12,13 @@ public class HomeController : Controller
 {
     private readonly SawmDbContext _db;
     private readonly UserManager<ApplicationUser> _users;
+    private readonly SignInManager<ApplicationUser> _signIn;
 
-    public HomeController(SawmDbContext db, UserManager<ApplicationUser> users)
+    public HomeController(SawmDbContext db, UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn)
     {
         _db = db;
         _users = users;
+        _signIn = signIn;
     }
 
     public async Task<IActionResult> Index()
@@ -26,7 +28,15 @@ public class HomeController : Controller
             return await LandingAsync();
 
         var userId = _users.GetUserId(User)!;
-        var user = await _db.Users.AsNoTracking().FirstAsync(u => u.Id == userId);
+        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
+
+        // كوكي جلسة لمستخدم لم يعد موجوداً (مثل إعادة تهيئة القاعدة أو حذف الحساب)
+        // — أنهِ الجلسة القديمة وأعِد المستخدم لتسجيل الدخول بدل رمي استثناء.
+        if (user is null)
+        {
+            await _signIn.SignOutAsync();
+            return RedirectToAction("Login", "Account");
+        }
 
         var vm = new DashboardViewModel
         {
