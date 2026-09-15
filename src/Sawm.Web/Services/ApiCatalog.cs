@@ -102,11 +102,29 @@ public static class ApiCatalog
             new("commissionRate", "نسبة عمولة ساوم %"),
             new("commissionAmount", "قيمة عمولة ساوم"),
             new("status", "حالة العقد"),
+            new("stage", "مرحلة الشحن"),
             new("received", "تم استلامها"),
             new("receivedAt", "تاريخ الاستلام"),
             new("releasedAt", "تاريخ الإرسال للشحن"),
             new("createdAt", "تاريخ الإنشاء"),
         }),
+    };
+
+    /// <summary>رمز مرحلة الشحن في الـAPI (لغة النظام الخارجي).</summary>
+    public static string StageCode(ShipmentStage s) => s switch
+    {
+        ShipmentStage.Received => "received",
+        ShipmentStage.InTransit => "in_transit",
+        ShipmentStage.Delivered => "delivered",
+        _ => "pending"
+    };
+
+    public static ShipmentStage? ParseStage(string? s) => (s ?? "").Trim().ToLowerInvariant() switch
+    {
+        "received" => ShipmentStage.Received,
+        "in_transit" or "intransit" or "in-transit" => ShipmentStage.InTransit,
+        "delivered" => ShipmentStage.Delivered,
+        _ => null
     };
 
     public static ApiResourceDef? Find(string key) =>
@@ -194,6 +212,7 @@ public static class ApiCatalog
         ["commissionRate"] = c.ShippingCommissionRate,
         ["commissionAmount"] = Math.Round(c.TotalValue * c.ShippingCommissionRate / 100m, 2),
         ["status"] = c.Status.ToString(),
+        ["stage"] = StageCode(c.ShipmentStage),
         ["received"] = c.ShippingReceived,
         ["receivedAt"] = c.ShippingReceivedAt,
         ["releasedAt"] = c.ShippingReleasedAt,

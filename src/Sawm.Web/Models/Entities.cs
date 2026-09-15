@@ -485,6 +485,11 @@ public class Contract
     [MaxLength(120), Display(Name = "النظام المستلِم")]
     public string? ShippingReceivedBy { get; set; }
 
+    /// <summary>مرحلة الشحن كما يحدّثها نظام اللوجستيك (استُلمت/قيد النقل/سُلّمت).</summary>
+    [Display(Name = "مرحلة الشحن")]
+    public ShipmentStage ShipmentStage { get; set; } = ShipmentStage.Pending;
+    public DateTime? ShipmentStageAt { get; set; }
+
     public ICollection<ContractEvent> Events { get; set; } = new List<ContractEvent>();
     public ICollection<QualityInspection> Inspections { get; set; } = new List<QualityInspection>();
 }

@@ -504,6 +504,22 @@ public static class Display
         _ => "مزود خدمة خارجي"
     };
 
+    public static string ShipmentStage(ShipmentStage s) => s switch
+    {
+        Models.ShipmentStage.Received => "استُلمت",
+        Models.ShipmentStage.InTransit => "قيد النقل",
+        Models.ShipmentStage.Delivered => "سُلّمت",
+        _ => "بانتظار الاستلام"
+    };
+
+    public static string ShipmentStageCss(ShipmentStage s) => s switch
+    {
+        Models.ShipmentStage.Received => "info",
+        Models.ShipmentStage.InTransit => "primary",
+        Models.ShipmentStage.Delivered => "success",
+        _ => "secondary"
+    };
+
     public static string UserType(UserType t) => t switch
     {
         Models.UserType.Farmer => "مزارع",

@@ -72,6 +72,15 @@ public enum EscrowStatus
     Refunded = 3    // مُعاد للمشتري
 }
 
+/// <summary>مرحلة الشحنة كما يحدّثها نظام اللوجستيك الخارجي</summary>
+public enum ShipmentStage
+{
+    Pending = 0,    // لم تُستلم بعد
+    Received = 1,   // استلمها اللوجستيك
+    InTransit = 2,  // قيد النقل
+    Delivered = 3   // سُلّمت
+}
+
 /// <summary>الطرف المسؤول عن النقل والتخزين والتأمين — المنصة ليست طرفاً لوجستياً</summary>
 public enum LogisticsResponsibility
 {

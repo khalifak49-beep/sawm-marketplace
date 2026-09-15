@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Sawm.Web.Data;
@@ -19,9 +20,25 @@ public class PublicApiController : ControllerBase
 {
     private readonly SawmDbContext _db;
     private readonly ApiKeyService _keys;
-    public PublicApiController(SawmDbContext db, ApiKeyService keys) { _db = db; _keys = keys; }
+    private readonly NotificationService _notify;
+    private readonly UserManager<ApplicationUser> _users;
+    public PublicApiController(SawmDbContext db, ApiKeyService keys, NotificationService notify, UserManager<ApplicationUser> users)
+    { _db = db; _keys = keys; _notify = notify; _users = users; }
 
     private const int MaxRows = 500;
+
+    /// <summary>يُشعر الأدمن (جرس + توست + بريد الموجز) بحدث شحن من نظام خارجي.</summary>
+    private async Task NotifyAdminsAsync(string title, string body)
+    {
+        try
+        {
+            var admins = await _users.GetUsersInRoleAsync(Roles.Admin);
+            var ids = admins.Select(a => a.Id).ToList();
+            if (ids.Count > 0)
+                await _notify.PushManyAsync(ids, title, body, "/Shipping");
+        }
+        catch { /* الإشعار مكمّل — لا يُعطّل تحديث الشحنة */ }
+    }
 
     /// <summary>دليل الموارد والحقول المتاحة (لا يتطلب مفتاحاً) — يساعد النظام الآخر على التكامل.</summary>
     [HttpGet("")]
@@ -110,7 +127,11 @@ public class PublicApiController : ControllerBase
             c.ShippingReceivedAt = DateTime.Now;
             var system = string.IsNullOrWhiteSpace(body?.System) ? key!.Name : body!.System!.Trim();
             c.ShippingReceivedBy = system.Length > 120 ? system[..120] : system;
+            c.ShipmentStage = ShipmentStage.Received;
+            c.ShipmentStageAt = DateTime.Now;
             await _db.SaveChangesAsync();
+            await NotifyAdminsAsync("تم استلام شحنة",
+                $"استلم «{c.ShippingReceivedBy}» الشحنة للعقد {c.ContractNumber}.");
         }
 
         return Ok(new
@@ -120,7 +141,56 @@ public class PublicApiController : ControllerBase
             received = true,
             receivedAt = c.ShippingReceivedAt,
             receivedBy = c.ShippingReceivedBy,
+            stage = ApiCatalog.StageCode(c.ShipmentStage),
             message = "تم تأكيد استلام الشحنة من منصة ساوم."
+        });
+    }
+
+    /// <summary>
+    /// يحدّث نظام اللوجستيك مرحلة الشحن: received | in_transit | delivered.
+    /// يتطلب مفتاحاً يملك صلاحية مورد shipments.
+    /// </summary>
+    [HttpPost("shipments/{id:int}/status")]
+    public async Task<IActionResult> UpdateShipmentStage(int id, [FromBody] ShipmentStageDto? body = null)
+    {
+        var (key, _, error) = await AuthorizeKey("shipments");
+        if (error is not null) return error;
+
+        var stage = ApiCatalog.ParseStage(body?.Stage);
+        if (stage is null)
+            return BadRequest(new { error = "bad_request", message = "قيمة stage غير صحيحة. المسموح: received | in_transit | delivered." });
+
+        var c = await _db.Contracts.FirstOrDefaultAsync(x => x.Id == id && x.ShippingReleased);
+        if (c is null)
+            return NotFound(new { error = "not_found", message = "لا توجد شحنة مُرسَلة بهذا المعرّف." });
+
+        c.ShipmentStage = stage.Value;
+        c.ShipmentStageAt = DateTime.Now;
+        if (stage.Value >= ShipmentStage.Received && !c.ShippingReceived)
+        {
+            c.ShippingReceived = true;
+            c.ShippingReceivedAt = DateTime.Now;
+            c.ShippingReceivedBy = string.IsNullOrWhiteSpace(body?.System) ? key!.Name : body!.System!.Trim();
+        }
+        await _db.SaveChangesAsync();
+
+        var stageAr = stage.Value switch
+        {
+            ShipmentStage.Received => "استُلمت",
+            ShipmentStage.InTransit => "قيد النقل",
+            ShipmentStage.Delivered => "سُلّمت",
+            _ => "محدّثة"
+        };
+        await NotifyAdminsAsync("تحديث حالة شحنة",
+            $"الشحنة للعقد {c.ContractNumber}: {stageAr} — بواسطة «{c.ShippingReceivedBy ?? key!.Name}».");
+
+        return Ok(new
+        {
+            id = c.Id,
+            contractNumber = c.ContractNumber,
+            stage = ApiCatalog.StageCode(c.ShipmentStage),
+            stageAt = c.ShipmentStageAt,
+            message = "تم تحديث مرحلة الشحن."
         });
     }
 
@@ -180,3 +250,6 @@ public class PublicApiController : ControllerBase
 
 /// <summary>جسم طلب تأكيد استلام الشحنة (اختياري) من نظام اللوجستيك.</summary>
 public record ReceiveShipmentDto(string? System, string? Reference);
+
+/// <summary>جسم طلب تحديث مرحلة الشحن من نظام اللوجستيك.</summary>
+public record ShipmentStageDto(string? Stage, string? System, string? Note);

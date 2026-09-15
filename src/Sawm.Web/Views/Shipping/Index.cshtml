@@ -67,13 +67,17 @@
                                 @Icons.Render("check", 13) تم الإرسال
                             </span>
                             <div class="text-muted small rtl-num">@c.ShippingReleasedAt?.ToString("yyyy/MM/dd HH:mm")</div>
-                            @if (c.ShippingReceived)
+                            <div class="mt-1">
+                                <span class="badge bg-@Display.ShipmentStageCss(c.ShipmentStage) d-inline-flex align-items-center gap-1">
+                                    @Icons.Render("truck", 13) @Display.ShipmentStage(c.ShipmentStage)
+                                </span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(c.ShippingReceivedBy))
                             {
-                                <div class="mt-1"><span class="badge bg-primary d-inline-flex align-items-center gap-1">
-                                    @Icons.Render("truck", 13) استلمها اللوجستيك</span></div>
-                                <div class="text-muted small">@(c.ShippingReceivedBy ?? "") <span class="rtl-num">@c.ShippingReceivedAt?.ToString("yyyy/MM/dd HH:mm")</span></div>
+                                <div class="text-muted small">@c.ShippingReceivedBy
+                                    <span class="rtl-num">@((c.ShipmentStageAt ?? c.ShippingReceivedAt)?.ToString("yyyy/MM/dd HH:mm"))</span>
+                                </div>
                             }
-                            else { <div class="text-muted small mt-1">بانتظار استلام اللوجستيك</div> }
                         }
                         else
                         {
