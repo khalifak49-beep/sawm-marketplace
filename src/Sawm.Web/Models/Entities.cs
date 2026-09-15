@@ -665,3 +665,28 @@ public class NotificationEmail
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 }
+
+/// <summary>مفتاح API يُمنح لنظام خارجي لقراءة بيانات محددة (بحقول محددة) من ساوم.</summary>
+public class ApiKey
+{
+    public int Id { get; set; }
+
+    [Required, MaxLength(100), Display(Name = "اسم النظام المستهلك")]
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>بداية المفتاح للعرض فقط (مثل sawm_ab12cd) — المفتاح الكامل لا يُخزَّن.</summary>
+    [MaxLength(24)] public string KeyPrefix { get; set; } = string.Empty;
+
+    /// <summary>تجزئة SHA-256 للمفتاح الكامل (Base64) — يُخزَّن بدل النص الصريح.</summary>
+    [MaxLength(64)] public string KeyHash { get; set; } = string.Empty;
+
+    /// <summary>JSON: الموارد والحقول المسموح بها، مثل {"auctions":["id","crop"],"crops":["name"]}</summary>
+    [MaxLength(4000)] public string FieldsJson { get; set; } = "{}";
+
+    [Display(Name = "مفعّل")] public bool IsActive { get; set; } = true;
+    [MaxLength(250), Display(Name = "ملاحظة")] public string? Note { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime? LastUsedAt { get; set; }
+    public int RequestCount { get; set; }
+}

@@ -56,6 +56,9 @@ public static class Icons
         ["seedling"] = "<path d='M7 20h10'/><path d='M12 20c0-6 0-8-3-10'/><path d='M12 14c0-4 2-6 6-6 0 4-2 6-6 6Z'/><path d='M12 12C12 9 10 7 6 7c0 3 2 5 6 5Z'/>",
         ["map-pin"] = "<path d='M20 10c0 4.4-5.6 9.5-7.4 11a1 1 0 0 1-1.2 0C9.6 19.5 4 14.4 4 10a8 8 0 0 1 16 0'/><circle cx='12' cy='10' r='3'/>",
         ["calendar"] = "<rect x='3' y='4' width='18' height='18' rx='2'/><path d='M16 2v4'/><path d='M8 2v4'/><path d='M3 10h18'/>",
+        ["key"] = "<path d='m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4'/><path d='m21 2-9.6 9.6'/><circle cx='7.5' cy='15.5' r='5.5'/>",
+        ["copy"] = "<rect x='9' y='9' width='13' height='13' rx='2'/><path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/>",
+        ["power"] = "<path d='M12 2v10'/><path d='M18.4 6.6a9 9 0 1 1-12.8 0'/>",
     };
 
     /// <summary>يرجع أيقونة SVG جاهزة للإدراج داخل Razor</summary>

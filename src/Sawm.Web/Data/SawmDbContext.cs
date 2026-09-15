@@ -25,6 +25,7 @@ public class SawmDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<NotificationEmail> NotificationEmails => Set<NotificationEmail>();
     public DbSet<ThemeSettings> ThemeSettings => Set<ThemeSettings>();
+    public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {

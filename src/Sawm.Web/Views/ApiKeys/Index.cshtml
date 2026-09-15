@@ -1,0 +1,141 @@
+@using Sawm.Web.Services
+@model List<Sawm.Web.Models.ApiKey>
+@{
+    ViewData["Title"] = "ربط الأنظمة (API)";
+    ViewData["Subtitle"] = "امنح نظامًا خارجيًا مفتاحًا يقرأ بيانات محددة بحقول تختارها";
+    var newKey = TempData["NewApiKey"] as string;
+    var newKeyName = TempData["NewApiKeyName"] as string;
+    var baseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+}
+
+@if (!string.IsNullOrEmpty(newKey))
+{
+    <div class="card mb-3" style="border:1px solid color-mix(in srgb, var(--primary) 40%, transparent)">
+        <div class="card-header d-flex align-items-center gap-2" style="background:color-mix(in srgb, var(--primary) 8%, #fff)">
+            @Icons.Render("key", 18) <b>مفتاح API الجديد — @newKeyName</b>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning d-flex align-items-center gap-2 mb-3">
+                @Icons.Render("alert", 18)
+                <div>انسخ هذا المفتاح الآن وسلّمه للنظام الآخر — <b>لن يظهر مرة أخرى</b> (نخزّن تجزئته فقط).</div>
+            </div>
+            <div class="d-flex gap-2 align-items-stretch">
+                <input id="newKeyValue" class="form-control font-monospace" dir="ltr" readonly value="@newKey"
+                       style="direction:ltr;text-align:left" />
+                <button type="button" class="btn btn-green text-nowrap" onclick="copyKey()">
+                    @Icons.Render("copy", 16) نسخ
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h5 class="fw-bold mb-1">مفاتيح ربط الأنظمة</h5>
+        <p class="text-muted small mb-0">كل مفتاح يصل إلى الموارد والحقول التي تحدّدها له فقط — قراءة فقط.</p>
+    </div>
+    <a class="btn btn-green" asp-action="Create">@Icons.Render("plus", 16) إنشاء مفتاح API</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">المفاتيح (@Model.Count)</div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead><tr>
+                        <th>الاسم</th><th>المفتاح</th><th>الموارد المسموحة</th>
+                        <th>الحالة</th><th>آخر استخدام</th><th>الطلبات</th><th>إجراءات</th>
+                    </tr></thead>
+                    <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="7" class="text-center text-muted py-5">لا توجد مفاتيح بعد — أنشئ مفتاحًا لربط نظام خارجي.</td></tr>
+                    }
+                    @foreach (var k in Model)
+                    {
+                        var map = ApiCatalog.ParseFields(k.FieldsJson);
+                        <tr>
+                            <td class="fw-semibold">
+                                @k.Name
+                                @if (!string.IsNullOrWhiteSpace(k.Note)) { <div class="text-muted small">@k.Note</div> }
+                            </td>
+                            <td class="small font-monospace" dir="ltr">@k.KeyPrefix</td>
+                            <td class="small">
+                                @foreach (var def in ApiCatalog.Resources)
+                                {
+                                    if (map.TryGetValue(def.Key, out var flds) && flds.Length > 0)
+                                    {
+                                        <span class="badge bg-light text-dark border me-1 mb-1" title="@string.Join("، ", flds)">
+                                            @def.Label <span class="rtl-num">(@flds.Length)</span>
+                                        </span>
+                                    }
+                                }
+                            </td>
+                            <td><span class="badge bg-@(k.IsActive ? "success" : "secondary")">@(k.IsActive ? "مفعّل" : "معطّل")</span></td>
+                            <td class="small rtl-num">@(k.LastUsedAt?.ToString("yyyy/MM/dd HH:mm") ?? "—")</td>
+                            <td class="small rtl-num">@k.RequestCount</td>
+                            <td class="text-nowrap">
+                                <form asp-action="ToggleActive" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@k.Id" />
+                                    <button class="btn btn-sm btn-outline-secondary" title="@(k.IsActive ? "تعطيل" : "تفعيل")">
+                                        @(k.IsActive ? "تعطيل" : "تفعيل")
+                                    </button>
+                                </form>
+                                <form asp-action="Delete" method="post" class="d-inline"
+                                      data-confirm="حذف هذا المفتاح نهائيًا؟ سيتوقف أي نظام يستخدمه.">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@k.Id" />
+                                    <button class="btn btn-sm btn-outline-danger" title="حذف">@Icons.Render("trash", 14)</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header d-flex align-items-center gap-2">@Icons.Render("file-text", 16) دليل الاستخدام للنظام الآخر</div>
+            <div class="card-body small">
+                <div class="mb-2">عنوان الواجهة الأساسي:</div>
+                <pre class="bg-light p-2 rounded border" dir="ltr" style="white-space:pre-wrap">@baseUrl/api/v1</pre>
+                <div class="mb-2">المصادقة — أرسل ترويسة مع كل طلب:</div>
+                <pre class="bg-light p-2 rounded border" dir="ltr" style="white-space:pre-wrap">X-API-Key: sawm_xxxxxxxx</pre>
+                <div class="mb-2">المسارات المتاحة (قراءة فقط):</div>
+                <ul class="mb-2 ps-3" dir="ltr" style="text-align:left">
+                    @foreach (var def in ApiCatalog.Resources)
+                    {
+                        <li><code>GET @def.Endpoint</code> <span class="text-muted">— @def.Label</span></li>
+                    }
+                </ul>
+                <div class="mb-1">مثال:</div>
+                <pre class="bg-light p-2 rounded border" dir="ltr" style="white-space:pre-wrap">curl -H "X-API-Key: KEY" \
+  @baseUrl/api/v1/auctions</pre>
+                <div class="text-muted">دليل الحقول متاح على <code dir="ltr">GET /api/v1/meta</code> (بدون مفتاح).</div>
+                <div class="alert alert-light border mt-2 mb-0">
+                    @Icons.Render("lock", 14) لأسباب الخصوصية، <b>هويّات الأطراف غير متاحة</b> عبر الـAPI.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function copyKey() {
+        var el = document.getElementById('newKeyValue');
+        if (!el) return;
+        el.select(); el.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(el.value).then(function () {
+            var b = event.currentTarget; var t = b.innerHTML; b.textContent = 'تم النسخ ✓';
+            setTimeout(function () { b.innerHTML = t; }, 1500);
+        }).catch(function () { try { document.execCommand('copy'); } catch (e) {} });
+    }
+</script>
+}

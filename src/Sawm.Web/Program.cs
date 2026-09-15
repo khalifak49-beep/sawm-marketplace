@@ -53,6 +53,7 @@ builder.Services.AddScoped<ContractService>();
 builder.Services.AddScoped<MatchingService>();
 builder.Services.AddScoped<BranchService>();
 builder.Services.AddScoped<ThemeService>();
+builder.Services.AddScoped<ApiKeyService>();
 
 // البريد الإلكتروني: إعدادات + طابور خلفي + مُرسِل (SMTP محلياً أو Brevo/HTTPS على السحابة)
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
@@ -99,6 +100,8 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapControllers();   // مسارات الـAPI بالسمات مثل /api/v1/...
 
 app.MapControllerRoute(
     name: "default",

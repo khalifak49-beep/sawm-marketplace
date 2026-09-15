@@ -1,0 +1,101 @@
+@using Sawm.Web.Services
+@{
+    ViewData["Title"] = "إنشاء مفتاح API";
+    ViewData["Subtitle"] = "حدّد اسم النظام والموارد والحقول التي سيصل إليها";
+}
+
+<a class="btn btn-sm btn-outline-secondary mb-3" asp-action="Index">@Icons.Render("arrow-left", 14) رجوع للقائمة</a>
+
+<form asp-action="Create" method="post" id="keyForm">
+    @Html.AntiForgeryToken()
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header">بيانات المفتاح</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label required">اسم النظام المستهلك</label>
+                        <input name="name" class="form-control" required maxlength="100"
+                               placeholder="مثلاً: نظام المحاسبة، تطبيق التقارير..." />
+                        <div class="form-text">اسم يعرّفك بالجهة التي ستستخدم المفتاح.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ملاحظة (اختياري)</label>
+                        <input name="note" class="form-control" maxlength="250" placeholder="غرض الاستخدام..." />
+                    </div>
+                    <div class="alert alert-light border small mb-3">
+                        @Icons.Render("lock", 14) الوصول <b>قراءة فقط</b>، وهويّات الأطراف غير متاحة.
+                        اختر أقل قدر من الحقول التي يحتاجها النظام فعليًا.
+                    </div>
+                    <div class="small text-muted mb-2">المحدّد: <b id="selCount" class="rtl-num">0</b> حقل</div>
+                    <button class="btn btn-green w-100">@Icons.Render("key", 16) إنشاء المفتاح</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span>الموارد والحقول المسموح بها</span>
+                    <span class="small text-muted">علّم ما يحتاجه النظام الآخر</span>
+                </div>
+                <div class="card-body">
+                    @foreach (var res in ApiCatalog.Resources)
+                    {
+                        <div class="border rounded p-3 mb-3 res-group">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input res-toggle" type="checkbox" id="grp_@res.Key" data-res="@res.Key" />
+                                <label class="form-check-label fw-bold" for="grp_@res.Key">@res.Label
+                                    <span class="text-muted small">(@res.Endpoint)</span>
+                                </label>
+                            </div>
+                            <div class="row g-2 ps-4">
+                                @foreach (var f in res.Fields)
+                                {
+                                    <div class="col-sm-6 col-md-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input fld" type="checkbox" name="fields"
+                                                   value="@res.Key:@f.Key" id="fld_@res.Key@f.Key" data-res="@res.Key" />
+                                            <label class="form-check-label small" for="fld_@res.Key@f.Key">@f.Label</label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    (function () {
+        var count = document.getElementById('selCount');
+        function refresh() {
+            var flds = document.querySelectorAll('.fld');
+            var n = 0;
+            flds.forEach(function (f) { if (f.checked) n++; });
+            count.textContent = n;
+            // زامن حالة رأس كل مجموعة (مُحدَّد كليًا/جزئيًا)
+            document.querySelectorAll('.res-toggle').forEach(function (t) {
+                var res = t.getAttribute('data-res');
+                var group = document.querySelectorAll('.fld[data-res="' + res + '"]');
+                var checked = Array.prototype.filter.call(group, function (g) { return g.checked; }).length;
+                t.checked = checked > 0 && checked === group.length;
+                t.indeterminate = checked > 0 && checked < group.length;
+            });
+        }
+        document.querySelectorAll('.res-toggle').forEach(function (t) {
+            t.addEventListener('change', function () {
+                var res = this.getAttribute('data-res');
+                document.querySelectorAll('.fld[data-res="' + res + '"]').forEach(function (g) { g.checked = t.checked; });
+                refresh();
+            });
+        });
+        document.querySelectorAll('.fld').forEach(function (f) { f.addEventListener('change', refresh); });
+        refresh();
+    })();
+</script>
+}
