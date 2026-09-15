@@ -144,6 +144,9 @@
                         @Icons.Render("gavel") <span>اعتماد المزادات</span>
                         @if (pendingAuctions > 0) { <span class="count rtl-num">@pendingAuctions</span> }
                     </a>
+                    <a class="nav-link-s @On("Shipping")" asp-controller="Shipping" asp-action="Index">
+                        @Icons.Render("truck") <span>طلبات الشحن</span>
+                    </a>
                     <a class="nav-link-s @OnAction("Admin","Users")" asp-controller="Admin" asp-action="Users">
                         @Icons.Render("users") <span>المستخدمون</span>
                     </a>

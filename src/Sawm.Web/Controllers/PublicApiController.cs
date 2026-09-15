@@ -76,6 +76,20 @@ public class PublicApiController : ControllerBase
         return Payload("contracts", fields!, data);
     }
 
+    [HttpGet("shipments")]
+    public async Task<IActionResult> Shipments()
+    {
+        var (fields, error) = await AuthorizeResource("shipments");
+        if (error is not null) return error;
+        // فقط الطلبات التي أفرج عنها الأدمن لأنظمة الشحن
+        var rows = await _db.Contracts.AsNoTracking()
+            .Include(c => c.Crop).Include(c => c.Auction)
+            .Where(c => c.ShippingReleased)
+            .OrderByDescending(c => c.ShippingReleasedAt).Take(MaxRows).ToListAsync();
+        var data = rows.Select(c => ApiCatalog.Filter(ApiCatalog.MapShipment(c), fields!));
+        return Payload("shipments", fields!, data);
+    }
+
     [HttpGet("crops")]
     public async Task<IActionResult> Crops()
     {

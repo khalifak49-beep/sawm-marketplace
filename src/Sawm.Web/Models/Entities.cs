@@ -469,6 +469,11 @@ public class Contract
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime? CompletedAt { get; set; }
 
+    // ── الشحن: إفراج الأدمن عن الطلب لأنظمة الشحن الخارجية المرتبطة عبر API ──
+    [Display(Name = "أُرسل لأنظمة الشحن")]
+    public bool ShippingReleased { get; set; }
+    public DateTime? ShippingReleasedAt { get; set; }
+
     public ICollection<ContractEvent> Events { get; set; } = new List<ContractEvent>();
     public ICollection<QualityInspection> Inspections { get; set; } = new List<QualityInspection>();
 }

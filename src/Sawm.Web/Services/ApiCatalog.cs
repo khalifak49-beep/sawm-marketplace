@@ -88,6 +88,21 @@ public static class ApiCatalog
             new("referencePrice", "السعر المرجعي"),
             new("isActive", "نشط"),
         }),
+        new("shipments", "طلبات الشحن", "/api/v1/shipments", new ApiFieldDef[]
+        {
+            new("id", "المعرّف"),
+            new("contractNumber", "رقم العقد"),
+            new("crop", "المحصول"),
+            new("quantity", "الكمية"),
+            new("unit", "الوحدة"),
+            new("pickupLocation", "موقع الاستلام"),
+            new("deliveryLocation", "مكان التسليم"),
+            new("deliveryDate", "تاريخ التسليم"),
+            new("logistics", "مسؤولية اللوجستيات"),
+            new("status", "حالة العقد"),
+            new("releasedAt", "تاريخ الإرسال للشحن"),
+            new("createdAt", "تاريخ الإنشاء"),
+        }),
     };
 
     public static ApiResourceDef? Find(string key) =>
@@ -159,6 +174,22 @@ public static class ApiCatalog
         ["buyerSigned"] = c.BuyerSigned,
         ["createdAt"] = c.CreatedAt,
         ["completedAt"] = c.CompletedAt,
+    };
+
+    public static Dictionary<string, object?> MapShipment(Contract c) => new()
+    {
+        ["id"] = c.Id,
+        ["contractNumber"] = c.ContractNumber,
+        ["crop"] = c.Crop?.Name,
+        ["quantity"] = c.Quantity,
+        ["unit"] = c.Crop?.Unit,
+        ["pickupLocation"] = c.Auction?.PickupLocation,
+        ["deliveryLocation"] = c.DeliveryLocation,
+        ["deliveryDate"] = c.DeliveryDate,
+        ["logistics"] = c.Logistics.ToString(),
+        ["status"] = c.Status.ToString(),
+        ["releasedAt"] = c.ShippingReleasedAt,
+        ["createdAt"] = c.CreatedAt,
     };
 
     public static Dictionary<string, object?> MapCrop(Crop c) => new()

@@ -1,0 +1,101 @@
+@model List<Sawm.Web.Models.Contract>
+@{
+    ViewData["Title"] = "طلبات الشحن";
+    ViewData["Subtitle"] = "العقود الموقّعة الجاهزة للشحن — أرسلها لأنظمة الشحن المرتبطة";
+    var released = Model.Count(c => c.ShippingReleased);
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <h5 class="fw-bold mb-1">طلبات الشحن</h5>
+        <p class="text-muted small mb-0">
+            هذه عقود مزادات معتمدة ومُوقّعة من الطرفين. اضغط <b>إرسال لأنظمة الشحن</b> ليظهر الطلب
+            لأنظمة الشحن المرتبطة عبر <code dir="ltr">/api/v1/shipments</code> (قراءة فقط).
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <span class="badge bg-light text-dark border align-self-center">الإجمالي: <span class="rtl-num">@Model.Count</span></span>
+        <span class="badge bg-success align-self-center">مُرسَل: <span class="rtl-num">@released</span></span>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead><tr>
+                <th>رقم العقد</th><th>المحصول</th><th>الكمية</th>
+                <th>من ← إلى</th><th>تاريخ التسليم</th><th>اللوجستيات</th>
+                <th>الدفع</th><th>حالة الإرسال</th><th>إجراء</th>
+            </tr></thead>
+            <tbody>
+            @if (!Model.Any())
+            {
+                <tr><td colspan="9" class="text-center text-muted py-5">لا توجد عقود جاهزة للشحن حالياً.</td></tr>
+            }
+            @foreach (var c in Model)
+            {
+                var paid = c.Escrow == EscrowStatus.Held || c.PaidAt != null;
+                <tr>
+                    <td class="fw-semibold" dir="ltr">@c.ContractNumber</td>
+                    <td>@(c.Crop?.Name ?? "—")</td>
+                    <td class="small rtl-num">@c.Quantity.ToString("N0") @(c.Crop?.Unit ?? "")</td>
+                    <td class="small">
+                        <span class="text-muted">@(c.Auction?.PickupLocation ?? "—")</span>
+                        <span class="mx-1">←</span>
+                        <span>@(c.DeliveryLocation ?? "—")</span>
+                    </td>
+                    <td class="small rtl-num">@c.DeliveryDate.ToString("yyyy/MM/dd")</td>
+                    <td class="small">@Display.Logistics(c.Logistics)</td>
+                    <td>
+                        <span class="badge bg-@(paid ? "success" : "warning")">
+                            @(paid ? "مدفوع" : "بانتظار الدفع")
+                        </span>
+                    </td>
+                    <td>
+                        @if (c.ShippingReleased)
+                        {
+                            <span class="badge bg-success d-inline-flex align-items-center gap-1">
+                                @Icons.Render("check", 13) تم الإرسال
+                            </span>
+                            <div class="text-muted small rtl-num">@c.ShippingReleasedAt?.ToString("yyyy/MM/dd HH:mm")</div>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">لم يُرسل</span>
+                        }
+                    </td>
+                    <td class="text-nowrap">
+                        @if (!c.ShippingReleased)
+                        {
+                            <form asp-action="Release" method="post" class="d-inline"
+                                  data-confirm="إرسال طلب الشحن لهذا العقد إلى أنظمة الشحن المرتبطة؟">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@c.Id" />
+                                <button class="btn btn-sm btn-green d-inline-flex align-items-center gap-1">
+                                    @Icons.Render("send", 14) إرسال لأنظمة الشحن
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-action="Recall" method="post" class="d-inline"
+                                  data-confirm="سحب طلب الشحن من أنظمة الشحن؟">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@c.Id" />
+                                <button class="btn btn-sm btn-outline-secondary">سحب</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="alert alert-light border mt-3 small d-flex align-items-center gap-2">
+    @Icons.Render("lock", 14)
+    <span>لأنظمة الشحن تُرسَل بيانات الشحن فقط (المحصول، الكمية، المواقع، التواريخ، المسؤولية) —
+    <b>دون هويّات الأطراف</b>. امنح نظام الشحن مفتاحًا يشمل مورد «طلبات الشحن» من
+    <a asp-controller="ApiKeys" asp-action="Index">ربط الأنظمة (API)</a>.</span>
+</div>
